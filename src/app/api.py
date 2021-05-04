@@ -37,12 +37,12 @@ def generate_mails(mails):
         t = {
             "member": members[mail.member_id],
             "group": {"id":3, "name": "IZ*ONE"},
-            "id": mail.id,
+            "id": mail.mail_id,
             "subject": mail.subject, "subject_ko": mail.subject, "subject_in": mail.subject, "subject_th": mail.subject, 
             "content": mail.content, "content_ko": mail.content, "content_in": mail.content, "content_th": mail.content, 
             "receive_time": mail.time,
             "receive_datetime": mail.datetime,
-            "detail_url": "{}/{}".format(config.DETAIL_PREFIX, mail.id), "detail_url_ko": "{}/{}".format(config.DETAIL_PREFIX, mail.id), "detail_url_in": "{}/{}".format(config.DETAIL_PREFIX, mail.id), "detail_url_th": "{}/{}".format(config.DETAIL_PREFIX, mail.id), 
+            "detail_url": "{}/{}".format(config.DETAIL_PREFIX, mail.mail_id), "detail_url_ko": "{}/{}".format(config.DETAIL_PREFIX, mail.mail_id), "detail_url_in": "{}/{}".format(config.DETAIL_PREFIX, mail.mail_id), "detail_url_th": "{}/{}".format(config.DETAIL_PREFIX, mail.mail_id), 
             "is_unread": False, #TODO: implement unread check
             "is_star": False, #TODO:implement star check
             "is_image": mail.is_image
@@ -109,7 +109,7 @@ def inbox():
         page = 1
 
 
-    mails = Mail.query.order_by(desc(Mail.id)).paginate(page, 20, False)
+    mails = Mail.query.order_by(desc(mail.mail_id)).paginate(page, 20, False)
 
     #TODO: processing mail data
     return json.dumps({
