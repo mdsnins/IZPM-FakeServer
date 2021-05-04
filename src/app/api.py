@@ -115,7 +115,7 @@ def inbox():
         "has_next_page": len(mails) == 20,
         "unread_count": session["user"].all_unread_count, #Unread count and star count should be managed in User model
         "star_count": session["user"].star_count,
-        mails: generate_mails(mails)
+        "mails": generate_mails(mails)
     })
 
 @router.route("/menu")
