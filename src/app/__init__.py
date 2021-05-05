@@ -11,3 +11,8 @@ app.config["SERVER_NAME"] = config.SERVER_NAME
 app.secret_key = urandom(16)
 
 app.register_blueprint(api_router, url_prefix='/v1')
+
+
+def init_db():
+    from . import model
+    database.Base.metadata.create_all(bind = database.engine)
