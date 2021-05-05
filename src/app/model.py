@@ -7,7 +7,7 @@ class User(Base):
     __tablename__ = "USER"
     
     id = Column(Integer, primary_key = True)
-    user_id = Column(String(32), unique = True)
+    user_id = Column(String(32), primary_key = True)
     nickname = Column(String(64), unique = False)
     gender = Column(String(8), unique = False)
     country_code = Column(String(2), unique = False)
@@ -37,7 +37,7 @@ class Mail(Base):
     __tablename__ = "MAIL"
 
     id = Column(Integer, primary_key = True)
-    mail_id = Column(String(8), unique = True)
+    mail_id = Column(String(8), primary_key = True)
     subject = Column(String(80), unique = False)
     content = Column(String(80), unique = False)
     
