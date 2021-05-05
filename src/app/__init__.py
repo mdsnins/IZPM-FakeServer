@@ -42,5 +42,4 @@ def test_db():
 
     database.db_session.add(m)
 
-    db_session.commit()
-    
+    database.db_session.commit()
