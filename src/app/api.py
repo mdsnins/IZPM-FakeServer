@@ -1,6 +1,7 @@
 import json
 from flask import Flask, render_template, request, url_for, redirect, Blueprint, send_from_directory
 from flask_login import login_required, login_user, current_user
+from sqlalchemy import desc
 from . import config
 from .model import *
 
@@ -31,7 +32,7 @@ def error(code, name, message, id = "#B-0000-0000"):
                 "message": message
             }
         }
-    }), code
+    }, ensure_ascii = False), code, {'Content-Type': 'application/json'}
 
 def get_user():
     u = User.query.get(request.headers.get("User-Id", ""))
@@ -55,8 +56,8 @@ def generate_mails(mails):
             "id": mail.mail_id,
             "subject": mail.subject, "subject_ko": mail.subject, "subject_in": mail.subject, "subject_th": mail.subject, 
             "content": mail.content, "content_ko": mail.content, "content_in": mail.content, "content_th": mail.content, 
-            "receive_time": mail.time,
-            "receive_datetime": mail.datetime,
+            "receive_time": mail.time.strftime("%Y/%m/%d %H:%M"),
+            "receive_datetime": mail.time.strftime("%Y/%m/%d %H:%M:%S"),
             "detail_url": "{}/{}".format(config.DETAIL_PREFIX, mail.mail_id), "detail_url_ko": "{}/{}".format(config.DETAIL_PREFIX, mail.mail_id), "detail_url_in": "{}/{}".format(config.DETAIL_PREFIX, mail.mail_id), "detail_url_th": "{}/{}".format(config.DETAIL_PREFIX, mail.mail_id), 
             "is_unread": not user.is_read(mail.mail_id),
             "is_star": user.is_read(mail.mail_id), 
@@ -85,7 +86,7 @@ def users():
             "birthday": user.birthday,
             "member_id": user.member_id
         }
-    })
+    }), 200, {'Content-Type': 'application/json'}
 
 @router.route("/application_settings")
 def application_settings():
@@ -95,14 +96,14 @@ def application_settings():
             "is_vibration": False,
             "is_sound": False
         }
-    })
+    }, ensure_ascii = False), 200, {'Content-Type': 'application/json'}
 
 @router.route("/informations")
 def informations():
     #TODO: implement information management from admin console, not important for now
     return json.dumps({
         "informations": []
-    })
+    }, ensure_ascii = False), 200, {'Content-Type': 'application/json'}
 
 @router.route("/inbox")
 def inbox():
@@ -112,8 +113,8 @@ def inbox():
     is_unread = request.args.get("is_unread", "0")
     member_id = request.args.get("member_id", "0") # 0 for everyone
     user = get_user()
-    
-    page = request.args.get("page")
+    page = request.args.get("page", "0")
+
     try:
         page = int(page)
         if page < 1:
@@ -127,7 +128,7 @@ def inbox():
     except ValueError:
         member_id = 0
 
-    mails = Mail.query.order_by(desc(mail.id))
+    mails = Mail.query.order_by(desc(Mail.id)).all()
     
     if member_id != 0:
         mails = [m for m in mails if m.member_id == member_id]
@@ -146,7 +147,7 @@ def inbox():
         "unread_count": user.m_unreads[member_id],
         "star_count": user.m_stars[member_id],
         "mails": generate_mails(mails)
-    })
+    }, ensure_ascii = False), 200, {'Content-Type': 'application/json'}
 
 @router.route("/menu")
 def menu():
@@ -258,8 +259,8 @@ def menu():
                 }]
             }]
         }],
-    })
+    }, ensure_ascii = False), 200, {'Content-Type': 'application/json'}
 
 @router.route("/menu_informations")
 def menu_informations():
-    return json.dumps({})
+    return json.dumps({}, ensure_ascii = False), 200, {'Content-Type': 'application/json'}
