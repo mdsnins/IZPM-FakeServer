@@ -11,4 +11,3 @@ app.config["SERVER_NAME"] = config.SERVER_NAME
 app.secret_key = urandom(16)
 
 app.register_blueprint(api_router, url_prefix='/v1')
-
