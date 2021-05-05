@@ -1,3 +1,5 @@
+izpm.db
+
 ### Flask ###
 instance/*
 !instance/.gitignore
