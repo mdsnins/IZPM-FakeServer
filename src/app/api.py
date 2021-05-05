@@ -1,5 +1,5 @@
 import json
-from flask import Flask, render_template, session, request, url_for, redirect, Blueprint, send_from_directory
+from flask import Flask, render_template, request, url_for, redirect, Blueprint, send_from_directory
 from flask_login import login_required, login_user, current_user
 import .config
 
@@ -32,8 +32,12 @@ def error(code, name, message, id = "#B-0000-0000"):
         }
     }), code
 
-def get_user(userid):
-    u = User.query.get(user_id)
+def get_user():
+    u = User.query.get(request.headers.get("User-Id", ""))
+
+    if not u:
+        return None
+
     u.m_names   = u.member_names.split('|') # Explode from string value
     u.m_unreads = [int(x) for x in u.member_unreads.split('|')] # Explode from string value
     u.m_stars   = [int(x) for x in u.member_stars.split('|')]
@@ -63,9 +67,7 @@ def generate_mails(mails):
 
 @router.before_request
 def auth_header():
-    session["user_id"] = request.headers.get("User-Id", "")
-    
-    if not get_user(session["user_id"])
+    if not get_user(request.headers.get("User-Id", ""))
         return error(401, "AuthorizationError", "인증 오류")
 
 @router.route("/users")
