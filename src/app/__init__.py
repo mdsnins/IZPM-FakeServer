@@ -1,8 +1,8 @@
 from flask import Flask
 from os import urandom
 
-import config
-import database
+from . import config
+from . import database
 
 from .api import router as api_router
 

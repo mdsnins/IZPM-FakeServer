@@ -1,7 +1,7 @@
 import json
 from flask import Flask, render_template, request, url_for, redirect, Blueprint, send_from_directory
 from flask_login import login_required, login_user, current_user
-import config
+from . import config
 
 router = Blueprint("api", __name__, subdomain = config.API_SUBDOMAIN)
 members = [
