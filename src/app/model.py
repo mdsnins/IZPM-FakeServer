@@ -113,6 +113,13 @@ class Member(Base):
     realname_in = Column(String(12), unique = False)
     image_url = Column(String(256), unique = False)
 
+    def __init__(self, id, name, name_global, image_url):
+        self.id = id
+        self.realname_ko = name
+        self.realname_th = name_global
+        self.realname_in = name_global
+        self.image_url = image_url
+
 class Mail(Base):
     __tablename__ = "MAIL"
 
