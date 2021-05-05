@@ -2,6 +2,7 @@ import json
 from flask import Flask, render_template, request, url_for, redirect, Blueprint, send_from_directory
 from flask_login import login_required, login_user, current_user
 from . import config
+from .model import *
 
 router = Blueprint("api", __name__, subdomain = config.API_SUBDOMAIN)
 members = [
@@ -67,7 +68,7 @@ def generate_mails(mails):
 
 @router.before_request
 def auth_header():
-    if not get_user(request.headers.get("User-Id", "")):
+    if not get_user():
         return error(401, "AuthorizationError", "인증 오류")
 
 @router.route("/users")
