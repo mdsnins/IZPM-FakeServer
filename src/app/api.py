@@ -67,7 +67,7 @@ def generate_mails(mails):
 
 @router.before_request
 def auth_header():
-    if not get_user(request.headers.get("User-Id", ""))
+    if not get_user(request.headers.get("User-Id", "")):
         return error(401, "AuthorizationError", "인증 오류")
 
 @router.route("/users")
