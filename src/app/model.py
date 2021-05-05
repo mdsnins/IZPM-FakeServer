@@ -24,6 +24,7 @@ class User(Base):
 
     m_names = []
     m_unreads = []
+    m_stars = []
 
     def __init__(self):
         self.all_unread_count = 0
@@ -32,6 +33,15 @@ class User(Base):
         self.member_names = "-|장원영|미야와키 사쿠라|조유리|최예나|안유진|야부키 나코|권은비|강혜원|혼다 히토미|김채원|김민주|이채연"
         self.member_unreads = "0|0|0|0|0|0|0|0|0|0|0|0|0"  # First column is for total
         self.member_stars = "0|0|0|0|0|0|0|0|0|0|0|0|0" # First column is for total
+
+    def change_name(self, member_id, name):
+        if not (1 <= member_id and member_id <= 12):
+            return -1 # member_id error
+        if '|' in name:
+            return -2 # name invalid char
+
+        self.m_names[member_id] = name
+        self.member_names = '|'.join(self.m_names)
 
     def read_mail(self, id):
         mail = Mail.query.get(id)
