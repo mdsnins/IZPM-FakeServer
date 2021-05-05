@@ -104,6 +104,15 @@ class User(Base):
         
         return mail in self.stars
 
+class Member(Base):
+    __tablename__ = "MEMBER"
+
+    id = Column(Integer, primary_key = True)
+    realname_ko = Column(String(12), unique = False)
+    realname_th = Column(String(12), unique = False)
+    realname_in = Column(String(12), unique = False)
+    image_url = Column(String(256), unique = False)
+
 class Mail(Base):
     __tablename__ = "MAIL"
 
@@ -112,11 +121,13 @@ class Mail(Base):
     subject = Column(String(80), unique = False)
     content = Column(String(80), unique = False)
     
-    member_id = Column(Integer)
+    member_id = Column(Integer, ForeignKey("MEMBER.id"))
+    member = relationship("Member", backref = backref("mails", order_by=desc(id)))
 
     time = Column(DateTime, unique = False)
     datetime = Column(DateTime, unique = False)
     is_image = Column(Boolean, unique = False)
+
 
 # Association Tables
 class MailReads(Base):
