@@ -2,4 +2,7 @@ from sys import argv
 from app import *
 
 if __name__ == "__main__":
-    app.run(host = "0.0.0.0", port = 10000, debug = True)
+    if argv[1] == "run":
+        app.run(host = "0.0.0.0", port = 10000, debug = True)
+    elif argv[1] == "initdb":
+        init_db()
