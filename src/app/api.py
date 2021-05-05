@@ -58,7 +58,7 @@ def auth_header():
         session["user"] = User.query.get(user_id)
     
     if not session["user_id"] or not session["user"]:
-        error(401, "AuthorizationError", "인증 오류")
+        return error(401, "AuthorizationError", "인증 오류")
 
     session["user"].m_names   = session["user"].member_names.split('|') # Explode from string value
     session["user"].m_unreads = [int(x) for x in session["user"].member_unreads.split('|')] # Explode from string value
