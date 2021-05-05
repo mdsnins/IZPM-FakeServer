@@ -126,7 +126,7 @@ class MailReads(Base):
     uid = Column(Integer, ForeignKey("USER.id"))
     mid = Column(Integer, ForeignKey("MAIL.id"))
 
-class MailReads(Base):
+class MailStars(Base):
     __tablename__ = "MAIL_STAR"
     id = Column(Integer, primary_key = True)
     uid = Column(Integer, ForeignKey("USER.id"))
