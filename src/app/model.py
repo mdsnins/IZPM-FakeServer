@@ -31,7 +31,7 @@ class User(Base):
 
         member_names = "|장원영|미야와키 사쿠라|조유리|최예나|안유진|야부키 나코|권은비|강혜원|혼다 히토미|김채원|김민주|이채연"
         self.reads = "-1|0|0|0|0|0|0|0|0|0|0|0|0"  # First column is for padding
-        self. = "-1|0|0|0|0|0|0|0|0|0|0|0|0" # First column is for padding
+        self.stars = "-1|0|0|0|0|0|0|0|0|0|0|0|0" # First column is for padding
 
 class Mail(Base):
     __tablename__ = "MAIL"
