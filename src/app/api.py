@@ -10,7 +10,7 @@ members = []
 
 def api_init():
     global members
-    members = [x.__dict__ for x in Member.query.all()]
+    members = Member.query.all()
 
 def error(code, name, message, id = "#B-0000-0000"):
     return json.dumps({
@@ -39,9 +39,11 @@ def get_user():
 def generate_mails(mails):
     result = []
     user = get_user()
+    member = mail.member.__dict__
+    member.pop("_sa_instance_state", None)
     for mail in mails:
         t = {
-            "member": members[mail.member_id],
+            "member": member,
             "group": {"id":3, "name": "IZ*ONE"},
             "id": mail.mail_id,
             "subject": mail.subject, "subject_ko": mail.subject, "subject_in": mail.subject, "subject_th": mail.subject, 
@@ -53,7 +55,7 @@ def generate_mails(mails):
             "is_star": user.is_read(mail.mail_id), 
             "is_image": mail.is_image
         }
-        t["member"]["name"] = user.m_names[mail.member_id]
+        t["member"]["name"] = user.m_names[mail.member.id]
         result.append(t)
     return result
 
@@ -118,10 +120,13 @@ def inbox():
     except ValueError:
         member_id = 0
 
-    mails = Mail.query.order_by(desc(Mail.id)).all()
+    mails = []
     
-    if member_id != 0:
-        mails = [m for m in mails if m.member_id == member_id]
+    if member_id == 0:
+        mails = Mail.query.order_by(desc(Mail.id)).all()
+    else:
+        mails = member[member_id].mails
+    
     if is_star != "0":
         mails = [m for m in mails if user.is_star(m.id)]
     if is_unread != "0":
@@ -160,91 +165,91 @@ def menu():
                     "member": {
                         "id": 7,
                         "name": user.m_names[7],
-                        "image_url": members[7]["image_url"]
+                        "image_url": members[7].image_url
                     },
                     "unread_count": user.m_unreads[7]
                 }, {
                     "member": {
                         "id": 2,
                         "name": user.m_names[2],
-                        "image_url": members[2]["image_url"]
+                        "image_url": members[2].image_url
                     },
                     "unread_count": user.m_unreads[2]
                 }, {
                     "member": {
                         "id": 8,
                         "name": user.m_names[8],
-                        "image_url": members[8]["image_url"]
+                        "image_url": members[8].image_url
                     },
                     "unread_count": user.m_unreads[8]
                 }, {
                     "member": {
                         "id": 4,
                         "name": user.m_names[4],
-                        "image_url": members[4]["image_url"]
+                        "image_url": members[4].image_url
                     },
                     "unread_count": user.m_unreads[4]
                 }, {
                     "member": {
                         "id": 12,
                         "name": user.m_names[12],
-                        "image_url": members[12]["image_url"]
+                        "image_url": members[12].image_url
                     },
                     "unread_count": user.m_unreads[12]
                 }, {
                     "member": {
                         "id": 10,
                         "name": user.m_names[10],
-                        "image_url": members[10]["image_url"]
+                        "image_url": members[10].image_url
                     },
                     "unread_count": user.m_unreads[10]
                 }, {
                     "member": {
                         "id": 11,
                         "name": user.m_names[11],
-                        "image_url": members[11]["image_url"]
+                        "image_url": members[11].image_url
                     },
                     "unread_count": user.m_unreads[11]
                 }, {
                     "member": {
                         "id": 7,
                         "name": user.m_names[7],
-                        "image_url": members[7]["image_url"]
+                        "image_url": members[7].image_url
                     },
                     "unread_count": user.m_unreads[7]
                 }, {
                     "member": {
                         "id": 6,
                         "name": user.m_names[6],
-                        "image_url": members[6]["image_url"]
+                        "image_url": members[6].image_url
                     },
                     "unread_count": user.m_unreads[6]
                 }, {
                     "member": {
                         "id": 9,
                         "name": user.m_names[9],
-                        "image_url": members[9]["image_url"]
+                        "image_url": members[9].image_url
                     },
                     "unread_count": user.m_unreads[9]
                 }, {
                     "member": {
                         "id": 3,
                         "name": user.m_names[3],
-                        "image_url": members[3]["image_url"]
+                        "image_url": members[3].image_url
                     },
                     "unread_count": user.m_unreads[3]
                 }, {
                     "member": {
                         "id": 5,
                         "name": user.m_names[5],
-                        "image_url": members[5]["image_url"]
+                        "image_url": members[5].image_url
                     },
                     "unread_count": user.m_unreads[5]
                 }, {
                     "member": {
                         "id": 1,
                         "name": user.m_names[1],
-                        "image_url": members[1]["image_url"]
+                        "image_url": members[1].image_url
                     },
                     "unread_count": user.m_unreads[1]
                 }]
