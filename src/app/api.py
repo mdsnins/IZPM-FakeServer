@@ -98,8 +98,11 @@ def informations():
 @router.route("/inbox")
 def inbox():
     is_information = request.args.get("is_information")
-    is_star = request.args.get("is_star")
-    is_unread = request.args.get("is_unread")
+    #drop group_id; not used in IZ*ONE PM
+    is_star = request.args.get("is_star", "0")
+    is_unread = request.args.get("is_unread", "0")
+    member_id = request.args.get("member_id", "0") # 0 for everyone
+    
     page = request.args.get("page")
     try:
         page = int(page)
@@ -107,30 +110,44 @@ def inbox():
             page = 1
     except ValueError:
         page = 1
+    try:
+        member_id = int(member_id)
+        if member_id < 0 or member_id > 12:
+            member_id = 0
+    except ValueError:
+        member_id = 0
 
+    mails = Mail.query.order_by(desc(mail.id))
+    
+    if member_id != 0:
+        mails = [m for m in mails if m.member_id == member_id]
+    if is_star != "0":
+        mails = [m for m in mails if session["user"].is_star(m.id)]
+    if is_unread != "0":
+        mails = [m for m in mails if not session["user"].is_read(m.id)]
+    
+    total = len(mails)
+    mails = mails[(page - 1)*20:page*20]
 
-    mails = Mail.query.order_by(desc(mail.mail_id)).paginate(page, 20, False)
-
-    #TODO: processing mail data
     return json.dumps({
-        "mail_count": 20,
+        "mail_count": len(mails),
         "page": page,
-        "has_next_page": len(mails) == 20,
-        "unread_count": session["user"].all_unread_count, #Unread count and star count should be managed in User model
-        "star_count": session["user"].star_count,
+        "has_next_page": page*20 >= total,
+        "unread_count": session["user"].m_unreads[member_id],
+        "star_count": session["user"].m_stars[member_id],
         "mails": generate_mails(mails)
     })
 
 @router.route("/menu")
 def menu():
     return json.dumps({
-        "all_unread_count": session["user"].all_unread_count,
+        "all_unread_count": session["user"].m_unreads[0],
         "notification_unread_count": session["user"].notification_unread_count,
-        "unread_count": session["user"].all_unread_count,
+        "unread_count": session["user"].m_unreads[0],
         "star_count": 0,
         "read_later_count": 0,
         "receiving_members": [{
-            "unread_count": session["user"].all_unread_count,
+            "unread_count": session["user"].m_unreads[0],
             "group": {
                 "id": 1,
                 "name": "설정 중"
@@ -232,3 +249,7 @@ def menu():
             }]
         }],
     })
+
+@router.route("/menu_informations")
+def menu_informations():
+    return json.dumps({})
