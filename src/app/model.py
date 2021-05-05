@@ -113,6 +113,8 @@ class Member(Base):
     realname_in = Column(String(12), unique = False)
     image_url = Column(String(256), unique = False)
 
+    mails = relationship("Mail", backref="member")
+
     def __init__(self, id, name, name_global, image_url):
         self.id = id
         self.realname_ko = name
@@ -128,9 +130,6 @@ class Mail(Base):
     subject = Column(String(80), unique = False)
     content = Column(String(80), unique = False)
     
-    member_id = Column(Integer, ForeignKey("MEMBER.id"))
-    member = relationship("Member", backref = backref("mails", order_by=desc(id)))
-
     time = Column(DateTime, unique = False)
     datetime = Column(DateTime, unique = False)
     is_image = Column(Boolean, unique = False)
