@@ -6,21 +6,11 @@ from . import config
 from .model import *
 
 router = Blueprint("api", __name__, subdomain = config.API_SUBDOMAIN)
-members = [
-    {},
-    {"id": 1, "realname_ko": "장원영", "realname_th": "JANG WON YOUNG", "realname_in": "JANG WON YOUNG", "image_url": config.IMAGE_PREFIX + "/1.jpg"},
-    {"id": 2, "realname_ko": "미야와키 사쿠라", "realname_th": "MIYAWAKI SAKURA", "realname_in": "MIYAWAKI SAKURA", "image_url": config.IMAGE_PREFIX + "/2.jpg"},
-    {"id": 3, "realname_ko": "조유리", "realname_th": "JO YU RI", "realname_in": "JO YU RI", "image_url": config.IMAGE_PREFIX + "/3.jpg"},
-    {"id": 4, "realname_ko": "최예나", "realname_th": "CHOI YE NA", "realname_in": "CHOI YE NA", "image_url": config.IMAGE_PREFIX + "/4.jpg"},
-    {"id": 5, "realname_ko": "안유진", "realname_th": "AN YU JIN", "realname_in": "AN YU JIN", "image_url": config.IMAGE_PREFIX + "/5.jpg"},
-    {"id": 6, "realname_ko": "야부키 나코", "realname_th": "YABUKI NAKO", "realname_in": "YABUKI NAKO", "image_url": config.IMAGE_PREFIX + "/6.jpg"},
-    {"id": 7, "realname_ko": "권은비", "realname_th": "KWON EUN BI", "realname_in": "KWON EUN BI", "image_url": config.IMAGE_PREFIX + "/7.jpg"},
-    {"id": 8, "realname_ko": "강혜원", "realname_th": "KANG HYE WON", "realname_in": "KANG HYE WON", "image_url": config.IMAGE_PREFIX + "/8.jpg"},
-    {"id": 9, "realname_ko": "혼다 히토미", "realname_th": "HONDA HITOMI", "realname_in": "HONDA HITOMI", "image_url": config.IMAGE_PREFIX + "/9.jpg"},
-    {"id": 10, "realname_ko": "김채원", "realname_th": "KIM CHAE WON", "realname_in": "KIM CHAE WON", "image_url": config.IMAGE_PREFIX + "/10.jpg"},
-    {"id": 11, "realname_ko": "김민주", "realname_th": "KIM MIN JU", "realname_in": "KIM MIN JU", "image_url": config.IMAGE_PREFIX + "/11.jpg"},
-    {"id": 12, "realname_ko": "이채연", "realname_th": "LEE CHAE YEON", "realname_in": "LEE CHAE YEON", "image_url": config.IMAGE_PREFIX + "/12.jpg"},
-]
+members = []
+
+def api_init():
+    global members
+    members = [x.__dict__ for x in Member.query.all()]
 
 def error(code, name, message, id = "#B-0000-0000"):
     return json.dumps({
@@ -151,9 +141,10 @@ def inbox():
 
 @router.route("/menu")
 def menu():
+    user = get_user()
     return json.dumps({
         "all_unread_count": user.m_unreads[0],
-        "notification_unread_count": user.notification_unread_count,
+        "notification_unread_count": 0,
         "unread_count": user.m_unreads[0],
         "star_count": 0,
         "read_later_count": 0,
