@@ -81,6 +81,20 @@ class User(Base):
         db_session.commit()
         return 1 # Successfully processed
 
+    def is_read(self, mail_id):
+        mail = Mail.query.get(mail_id)
+        if not mail:
+            return False
+        
+        return mail in self.reads
+
+    def is_star(self, mail_id):
+        mail = Mail.query.get(mail_id)
+        if not mail:
+            return False
+        
+        return mail in self.stars
+
 class Mail(Base):
     __tablename__ = "MAIL"
 
