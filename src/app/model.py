@@ -6,8 +6,7 @@ from .database import Base, db_session
 class User(Base):
     __tablename__ = "USER"
     
-    id = Column(Integer, primary_key = True)
-    user_id = Column(String(32), unique  = True)
+    user_id = Column(String(32), primary_key = True)
     nickname = Column(String(64), unique = False)
     gender = Column(String(8), unique = False)
     country_code = Column(String(2), unique = False)
@@ -123,11 +122,11 @@ class Mail(Base):
 class MailReads(Base):
     __tablename__ = "MAIL_READ"
     id = Column(Integer, primary_key = True)
-    uid = Column(Integer, ForeignKey("USER.id"))
+    uid = Column(Integer, ForeignKey("USER.user_id"))
     mid = Column(Integer, ForeignKey("MAIL.id"))
 
 class MailStars(Base):
     __tablename__ = "MAIL_STAR"
     id = Column(Integer, primary_key = True)
-    uid = Column(Integer, ForeignKey("USER.id"))
+    uid = Column(Integer, ForeignKey("USER.user_id"))
     mid = Column(Integer, ForeignKey("MAIL.id"))
