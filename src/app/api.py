@@ -43,11 +43,11 @@ def generate_mails(mails):
             "receive_time": mail.time,
             "receive_datetime": mail.datetime,
             "detail_url": "{}/{}".format(config.DETAIL_PREFIX, mail.mail_id), "detail_url_ko": "{}/{}".format(config.DETAIL_PREFIX, mail.mail_id), "detail_url_in": "{}/{}".format(config.DETAIL_PREFIX, mail.mail_id), "detail_url_th": "{}/{}".format(config.DETAIL_PREFIX, mail.mail_id), 
-            "is_unread": False, #TODO: implement unread check
-            "is_star": False, #TODO:implement star check
+            "is_unread": not session["user"].is_read(mail.mail_id),
+            "is_star": session["user"].is_read(mail.mail_id), 
             "is_image": mail.is_image
         }
-        t["member"]["name"] = session["user"].m_names[mail.member_id] #TODO: implement user-defined nickname
+        t["member"]["name"] = session["user"].m_names[mail.member_id]
         result.append(t)
     return result
 
