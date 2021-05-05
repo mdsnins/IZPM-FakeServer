@@ -3,7 +3,7 @@ from flask import Flask, render_template, request, url_for, redirect, Blueprint,
 from flask_login import login_required, login_user, current_user
 import .config
 
-router = Blueprint("api", __name__)
+router = Blueprint("api", __name__, subdomain = config.API_SUBDOMAIN)
 members = [
     {},
     {"id": 1, "realname_ko": "장원영", "realname_th": "JANG WON YOUNG", "realname_in": "JANG WON YOUNG", "image_url": config.IMAGE_PREFIX + "/1.jpg"},
