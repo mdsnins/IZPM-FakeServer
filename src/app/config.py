@@ -1,9 +1,14 @@
 SQLITE_DB = "sqlite://izpm.db"
 
-API_HOST   = "https://app-api.izone-mail.com"
-WEB_HOST   = "https://app-web.izone-mail.com"
-IMG_HOST   = "https://img.izone-mail.com"
-ADMIN_HOST = "https://app-admin.izone-mail.com" #TODO: Implement
+SERVER_NAME = "izone-mail.com"
+
+API_SUBDOMAIN = "app-api"
+WEB_SUBDOMAIN = "app-web"
+IMG_SUBDOMAIN = "app-img"
+
+API_HOST   = "http://{}.{}".format(API_SUBDOMAIN, SERVER_NAME)
+WEB_HOST   = "http://{}.{}".format(WEB_SUBDOMAIN, SERVER_NAME)
+IMG_HOST   = "http://{}.{}".format(IMG_SUBDOMAIN, SERVER_NAME)
 
 IMAGE_PREFIX  = IMG_HOST + "/artist/profile/starship/202010211113"
 DETAIL_PREFIX = WEB_HOST + "/mail"
