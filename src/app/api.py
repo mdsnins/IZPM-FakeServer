@@ -1,5 +1,6 @@
 import json
 from flask import Flask, render_template, session, request, url_for, redirect, Blueprint, send_from_directory
+from flask_login import login_required, login_user, current_user
 import .config
 
 router = Blueprint("api", __name__)
@@ -31,8 +32,17 @@ def error(code, name, message, id = "#B-0000-0000"):
         }
     }), code
 
+def get_user(userid):
+    u = User.query.get(user_id)
+    u.m_names   = u.member_names.split('|') # Explode from string value
+    u.m_unreads = [int(x) for x in u.member_unreads.split('|')] # Explode from string value
+    u.m_stars   = [int(x) for x in u.member_stars.split('|')]
+    
+    return u
+
 def generate_mails(mails):
     result = []
+    user = get_user()
     for mail in mails:
         t = {
             "member": members[mail.member_id],
@@ -43,39 +53,34 @@ def generate_mails(mails):
             "receive_time": mail.time,
             "receive_datetime": mail.datetime,
             "detail_url": "{}/{}".format(config.DETAIL_PREFIX, mail.mail_id), "detail_url_ko": "{}/{}".format(config.DETAIL_PREFIX, mail.mail_id), "detail_url_in": "{}/{}".format(config.DETAIL_PREFIX, mail.mail_id), "detail_url_th": "{}/{}".format(config.DETAIL_PREFIX, mail.mail_id), 
-            "is_unread": not session["user"].is_read(mail.mail_id),
-            "is_star": session["user"].is_read(mail.mail_id), 
+            "is_unread": not user.is_read(mail.mail_id),
+            "is_star": user.is_read(mail.mail_id), 
             "is_image": mail.is_image
         }
-        t["member"]["name"] = session["user"].m_names[mail.member_id]
+        t["member"]["name"] = user.m_names[mail.member_id]
         result.append(t)
     return result
 
 @router.before_request
 def auth_header():
     session["user_id"] = request.headers.get("User-Id", "")
-    if session["user"].user_id != session["user_id"]:
-        session["user"] = User.query.get(user_id)
     
-    if not session["user_id"] or not session["user"]:
+    if not get_user(session["user_id"])
         return error(401, "AuthorizationError", "인증 오류")
-
-    session["user"].m_names   = session["user"].member_names.split('|') # Explode from string value
-    session["user"].m_unreads = [int(x) for x in session["user"].member_unreads.split('|')] # Explode from string value
-    session["user"].m_stars   = [int(x) for x in session["user"].member_stars.split('|')]
 
 @router.route("/users")
 def users():
+    user = get_user()
     return json.dumps({
         "user": {
-            "id": session["user"].user_id,
+            "id": user.user_id,
             "access_token": "000000000000000000000000",
-            "nickname": session["user"].nickname,
-            "gender": session["user"].gender,
-            "country_code": session["user"].country_code,
-            "prefecture_id": session["user"].prefecture_id,
-            "birthday": session["user"].birthday,
-            "member_id": session["user"].member_id
+            "nickname": user.nickname,
+            "gender": user.gender,
+            "country_code": user.country_code,
+            "prefecture_id": user.prefecture_id,
+            "birthday": user.birthday,
+            "member_id": user.member_id
         }
     })
 
@@ -103,6 +108,7 @@ def inbox():
     is_star = request.args.get("is_star", "0")
     is_unread = request.args.get("is_unread", "0")
     member_id = request.args.get("member_id", "0") # 0 for everyone
+    user = get_user()
     
     page = request.args.get("page")
     try:
@@ -123,9 +129,9 @@ def inbox():
     if member_id != 0:
         mails = [m for m in mails if m.member_id == member_id]
     if is_star != "0":
-        mails = [m for m in mails if session["user"].is_star(m.id)]
+        mails = [m for m in mails if user.is_star(m.id)]
     if is_unread != "0":
-        mails = [m for m in mails if not session["user"].is_read(m.id)]
+        mails = [m for m in mails if not user.is_read(m.id)]
     
     total = len(mails)
     mails = mails[(page - 1)*20:page*20]
@@ -134,21 +140,21 @@ def inbox():
         "mail_count": len(mails),
         "page": page,
         "has_next_page": page*20 >= total,
-        "unread_count": session["user"].m_unreads[member_id],
-        "star_count": session["user"].m_stars[member_id],
+        "unread_count": user.m_unreads[member_id],
+        "star_count": user.m_stars[member_id],
         "mails": generate_mails(mails)
     })
 
 @router.route("/menu")
 def menu():
     return json.dumps({
-        "all_unread_count": session["user"].m_unreads[0],
-        "notification_unread_count": session["user"].notification_unread_count,
-        "unread_count": session["user"].m_unreads[0],
+        "all_unread_count": user.m_unreads[0],
+        "notification_unread_count": user.notification_unread_count,
+        "unread_count": user.m_unreads[0],
         "star_count": 0,
         "read_later_count": 0,
         "receiving_members": [{
-            "unread_count": session["user"].m_unreads[0],
+            "unread_count": user.m_unreads[0],
             "group": {
                 "id": 1,
                 "name": "설정 중"
@@ -158,94 +164,94 @@ def menu():
                 "members": [{
                     "member": {
                         "id": 7,
-                        "name": session["user"].m_names[7],
+                        "name": user.m_names[7],
                         "image_url": members[7]["image_url"]
                     },
-                    "unread_count": session["user"].m_unreads[7]
+                    "unread_count": user.m_unreads[7]
                 }, {
                     "member": {
                         "id": 2,
-                        "name": session["user"].m_names[2],
+                        "name": user.m_names[2],
                         "image_url": members[2]["image_url"]
                     },
-                    "unread_count": session["user"].m_unreads[2]
+                    "unread_count": user.m_unreads[2]
                 }, {
                     "member": {
                         "id": 8,
-                        "name": session["user"].m_names[8],
+                        "name": user.m_names[8],
                         "image_url": members[8]["image_url"]
                     },
-                    "unread_count": session["user"].m_unreads[8]
+                    "unread_count": user.m_unreads[8]
                 }, {
                     "member": {
                         "id": 4,
-                        "name": session["user"].m_names[4],
+                        "name": user.m_names[4],
                         "image_url": members[4]["image_url"]
                     },
-                    "unread_count": session["user"].m_unreads[4]
+                    "unread_count": user.m_unreads[4]
                 }, {
                     "member": {
                         "id": 12,
-                        "name": session["user"].m_names[12],
+                        "name": user.m_names[12],
                         "image_url": members[12]["image_url"]
                     },
-                    "unread_count": session["user"].m_unreads[12]
+                    "unread_count": user.m_unreads[12]
                 }, {
                     "member": {
                         "id": 10,
-                        "name": session["user"].m_names[10],
+                        "name": user.m_names[10],
                         "image_url": members[10]["image_url"]
                     },
-                    "unread_count": session["user"].m_unreads[10]
+                    "unread_count": user.m_unreads[10]
                 }, {
                     "member": {
                         "id": 11,
-                        "name": session["user"].m_names[11],
+                        "name": user.m_names[11],
                         "image_url": members[11]["image_url"]
                     },
-                    "unread_count": session["user"].m_unreads[11]
+                    "unread_count": user.m_unreads[11]
                 }, {
                     "member": {
                         "id": 7,
-                        "name": session["user"].m_names[7],
+                        "name": user.m_names[7],
                         "image_url": members[7]["image_url"]
                     },
-                    "unread_count": session["user"].m_unreads[7]
+                    "unread_count": user.m_unreads[7]
                 }, {
                     "member": {
                         "id": 6,
-                        "name": session["user"].m_names[6],
+                        "name": user.m_names[6],
                         "image_url": members[6]["image_url"]
                     },
-                    "unread_count": session["user"].m_unreads[6]
+                    "unread_count": user.m_unreads[6]
                 }, {
                     "member": {
                         "id": 9,
-                        "name": session["user"].m_names[9],
+                        "name": user.m_names[9],
                         "image_url": members[9]["image_url"]
                     },
-                    "unread_count": session["user"].m_unreads[9]
+                    "unread_count": user.m_unreads[9]
                 }, {
                     "member": {
                         "id": 3,
-                        "name": session["user"].m_names[3],
+                        "name": user.m_names[3],
                         "image_url": members[3]["image_url"]
                     },
-                    "unread_count": session["user"].m_unreads[3]
+                    "unread_count": user.m_unreads[3]
                 }, {
                     "member": {
                         "id": 5,
-                        "name": session["user"].m_names[5],
+                        "name": user.m_names[5],
                         "image_url": members[5]["image_url"]
                     },
-                    "unread_count": session["user"].m_unreads[5]
+                    "unread_count": user.m_unreads[5]
                 }, {
                     "member": {
                         "id": 1,
-                        "name": session["user"].m_names[1],
+                        "name": user.m_names[1],
                         "image_url": members[1]["image_url"]
                     },
-                    "unread_count": session["user"].m_unreads[1]
+                    "unread_count": user.m_unreads[1]
                 }]
             }]
         }],
