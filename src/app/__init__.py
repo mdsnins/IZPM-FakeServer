@@ -34,7 +34,32 @@ def init_db():
     database.db_session.add(model.Member(12, "이채연", "LEE CHAE YEON", config.IMAGE_PREFIX + "/12.jpg"))
     
     database.db_session.commit()
-    
+
+def load_pm(pm_data):
+    members = model.Member.query.all()
+    m_dict = {
+        "장원영":1, "미야와키 사쿠라":2, "조유리":3, "최예나":4, "안유진": 5, "야부키 나코":6,
+        "권은비":7, "강혜원":8, "혼다 히토미":9, "김채원":10, "김민주":11, "이채연":12,
+        "チャン・ウォニョン":1, "宮脇咲良":2, "チョ・ユリ":3, "チェ・イェナ":4, "アン・ユジン":5, "矢吹奈子":6,
+        "クォン・ウンビ":7, "カン・へウォン":8, "本田仁美":9, "キム・チェウォン":10, "キム・ミンジュ":11, "イ・チェヨン":12,
+    }
+    for mail in pm_data:
+        if mail["member"] == "운영팀":
+            continue
+        m = model.Mail()
+        m.mail_id = mail["id"]
+        m.subject = mail["subject"]
+        m.content = mail["preview"][:80]
+        m.time = datetime.datetime.strptime(mail["time"], "%Y/%m/%d %H:%M")
+        m.datetime = datetime.datetime.strptime(mail["time"], "%Y/%m/%d %H:%M")
+        m.is_image = mail["image"]
+        m.member_id = m_dict[mail["member"]]
+
+        members[m_dict[mail["member"]]].mails.append(m)
+         
+        database.db_session.add(m)
+    database.db_session.commit()
+        
 
 def test_db():
     u = model.User()

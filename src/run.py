@@ -1,3 +1,4 @@
+import json
 from sys import argv
 from app import *
 
@@ -9,3 +10,11 @@ if __name__ == "__main__":
         init_db()
     elif argv[1] == "testdb":
         test_db()
+    elif argv[1] == "loadpm":
+        f = open("pm.js", "r")
+        raw = f.read()[14:]
+        f.close()
+        load_pm(json.loads(raw))
+    elif argv[1] == "debug":
+        import code
+        code.interact(local=locals())

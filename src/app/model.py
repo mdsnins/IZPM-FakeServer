@@ -130,6 +130,8 @@ class Mail(Base):
     subject = Column(String(80), unique = False)
     content = Column(String(80), unique = False)
     
+    member_id = Column(Integer, ForeignKey("MEMBER.id"))
+
     time = Column(DateTime, unique = False)
     datetime = Column(DateTime, unique = False)
     is_image = Column(Boolean, unique = False)
