@@ -26,7 +26,6 @@ def error(code, name, message, id = "#B-0000-0000"):
 
 def get_user():
     u = User.query.get(request.headers.get("User-Id", ""))
-
     if not u:
         return None
 
@@ -39,9 +38,12 @@ def get_user():
 def generate_mails(mails):
     result = []
     user = get_user()
-    member = mail.member.__dict__
-    member.pop("_sa_instance_state", None)
     for mail in mails:
+        member = dict(mail.member.__dict__)
+        if "_sa_instance_state" in member:
+            member.pop("_sa_instance_state", None)
+        if "mails" in member:
+            member.pop("mails", None)
         t = {
             "member": member,
             "group": {"id":3, "name": "IZ*ONE"},
@@ -64,7 +66,7 @@ def auth_header():
     if not get_user():
         return error(401, "AuthorizationError", "인증 오류")
 
-@router.route("/users")
+@router.route("/users", methods = ["GET", "POST"])
 def users():
     user = get_user()
     return json.dumps({
@@ -123,22 +125,21 @@ def inbox():
     mails = []
     
     if member_id == 0:
-        mails = Mail.query.order_by(desc(Mail.id)).all()
+        mails = Mail.query.order_by(desc(Mail.datetime)).all()
     else:
         mails = member[member_id].mails
     
-    if is_star != "0":
+    if is_star != "0" and is_star != "false":
         mails = [m for m in mails if user.is_star(m.id)]
-    if is_unread != "0":
+    if is_unread != "0" and is_star != "false":
         mails = [m for m in mails if not user.is_read(m.id)]
     
     total = len(mails)
     mails = mails[(page - 1)*20:page*20]
-
     return json.dumps({
         "mail_count": len(mails),
         "page": page,
-        "has_next_page": page*20 >= total,
+        "has_next_page": page*20 < total,
         "unread_count": user.m_unreads[member_id],
         "star_count": user.m_stars[member_id],
         "mails": generate_mails(mails)
