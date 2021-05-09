@@ -1,6 +1,7 @@
 pm.js
 config.py
 izpm.db
+uwsgi.ini
 
 ### Flask ###
 instance/*
