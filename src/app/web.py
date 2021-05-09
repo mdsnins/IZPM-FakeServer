@@ -16,7 +16,9 @@ def getjs(path):
 
 # About user registration (Agreements)
 @router.route("/pages/kiyaku")
+def kiyaku():
     return send_file("static/web/kiyaku.html")
     
 @router.route("/pages/privacy")
+def privacy():
     return send_file("static/web/privacy.html")
