@@ -1,0 +1,12 @@
+[uwsgi]
+chdir = /tmp
+socket = /tmp/izpm-fakeserver.sock
+uid = www-data
+gid = www-data
+chmod-socket = 666
+module = run
+callable = app
+processes = 4
+pidfile = /tmp/izpm-fakeserver.pid
+logger = file:/tmp/izpm-fakeserver.pid
+plugins = python3
