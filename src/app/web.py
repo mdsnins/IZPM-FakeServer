@@ -6,11 +6,11 @@ router = Blueprint("web", __name__, subdomain = config.WEB_SUBDOMAIN)
 members = []
 
 # Static files
-@frontend.route("/css/<path:path>")
+@router.route("/css/<path:path>")
 def getcss(path):
     return send_from_directory("static/css", path)
 
-@frontend.route("/css/<path:path>")
+@router.route("/css/<path:path>")
 def getjs(path):
     return send_from_directory("static/js", path)
 
