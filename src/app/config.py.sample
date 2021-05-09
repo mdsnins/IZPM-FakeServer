@@ -1,4 +1,4 @@
-SQLITE_DB = "sqlite://izpm.db"
+SQLITE_DB = "sqlite:///izpm.db"
 
 SERVER_NAME = "izone-mail.com"
 
