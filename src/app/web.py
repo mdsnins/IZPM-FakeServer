@@ -3,12 +3,12 @@ from . import config
 from .model import *
 from .tool import *
 
-router = Blueprint("web", __name__, subdomain = config.WEB_SUBDOMAIN)
+router = Blueprint("web", __name__, subdomain = config.WEB_SUBDOMAIN, template_folder = "static/web")
 members = []
 
-def get_user():
-    u = User.query.get(request.headers.get("User-Id", ""))
-    if not u or u.access_token != request.headers.get("Access-Token", ""):
+def get_user(user_id = "", access_token = ""):
+    u = User.query.get(request.headers.get("User-Id", user_id))
+    if not u or u.access_token != request.headers.get("Access-Token", access_token):
         return None
 
     u.m_names   = u.member_names.split('|') # Explode from string value
@@ -39,16 +39,26 @@ def privacy():
 def tutorial():
     return send_file("static/web/tutorial.html")
 
+# Config page
+@router.route("/mail/config/<cid>")
+def user_config(cid):
+    user = get_user()
+    if not user:
+        return error(401, "AuthorizationError", "인증 오류")
+
+    if cid == "m_nick":
+        m_nick = ['']
+        for i in range(1, 13):
+            c = user.get_config("m%d_nick" % i)
+            m_nick.append(c.value if c is not None else "")
+        return render_template("config/member_name.html", m_nick = m_nick, user_id = request.headers.get("User-Id"), access_token = request.headers.get("Access-Token"))
+
 # Mail
 @router.route("/mail/<mid>")
 def inbox_read(mid):
     user = get_user()
     if not user:
         return error(401, "AuthorizationError", "인증 오류")
-
-    if mid == "config":
-        # Move to config page
-        return user_config(user)
 
     mail = Mail.query.get(mid)
     if not mail:
@@ -57,7 +67,44 @@ def inbox_read(mid):
     #TODO: implement
     pass
 
-# Config page
-def user_config(user):
-    # Configurations: Postposition replacement setting
-    pass
+
+# Support Extensions
+@router.route("/config/<key>", methods = ["GET", "POST"])
+def new_config(key):
+    u = get_user(request.args.get("u", ""), request.args.get("t", ""))
+    if not u:
+        return error(401, "AuthorizationError", "인증 오류")
+    v = request.form.get("value", "")
+    c = u.get_config(key)
+
+    if request.method == "POST":    
+        if c:
+            c.value = v
+            return generate_json({"code": 200, "msg": "success"})
+
+        c = Config()
+        c.key = key
+        c.value = v
+        u.configs.append(c)
+
+        db_session.add(c)
+        db_session.commit()
+        return generate_json({"code": 200, "msg": "success"})
+    else:
+        if c:
+            return generate_json({"code": 200, "result": c.value})
+        else:
+            return generate_json({"code": 200, "result": ""})
+
+@router.route("/config/<key>/remove", methods = ["POST"])
+def remove_config(key):
+    u = get_user()
+    if not u:
+        return error(401, "AuthorizationError", "인증 오류")
+    c = u.get_config(key)
+    if not c:
+        return generate_json({"code": 200, "msg": "success"})
+        
+    db_session.delete(c)
+    db_session.commit()
+    return generate_json({"code": 200, "msg": "success"})

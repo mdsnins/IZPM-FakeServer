@@ -20,6 +20,8 @@ def get_user():
     u.m_names = ['']
     for i in range(1, 13):
         u.m_names.append(t[i] if t[i] != '' else members[i].realname_ko)
+    u.m_names.append("평행우주 프로젝트")
+    u.m_names.append("설정")
     u.m_unreads = [int(x) for x in u.member_unreads.split('|')] # Explode from string value
     u.m_stars   = [int(x) for x in u.member_stars.split('|')]
     
@@ -47,7 +49,7 @@ def generate_mails(mails):
         if "mails" in member:
             member.pop("mails", None)
         
-        content = resolve_name(mail.content, user.get_nickname(member.member_id))
+        content = resolve_name(mail.content, user.get_nickname(member["id"]))
         t = {
             "member": member,
             "group": {"id":3, "name": "IZ*ONE"},
@@ -189,7 +191,7 @@ def inbox():
         page = 1
     try:
         member_id = int(member_id)
-        if member_id < 0 or member_id > 12:
+        if member_id < 0 or 14 < member_id:
             member_id = 0
     except ValueError:
         member_id = 0
@@ -199,7 +201,7 @@ def inbox():
     if member_id == 0:
         mails = Mail.query.order_by(desc(Mail.datetime)).all()
     else:
-        mails = member[member_id].mails
+        mails = members[member_id].mails
     
     if is_star != "0" and is_star != "false":
         mails = [m for m in mails if user.is_star(m.id)]
@@ -212,19 +214,71 @@ def inbox():
         "mail_count": len(mails),
         "page": page,
         "has_next_page": page*20 < total,
-        "unread_count": user.m_unreads[member_id],
-        "star_count": user.m_stars[member_id],
+        "unread_count": user.m_unreads[member_id] if member_id < 13 else 0 ,
+        "star_count": user.m_stars[member_id] if member_id < 13  else 0,
         "mails": generate_mails(mails)
     })
+
+@router.route("/inbox/config/<cid>", methods = ["PATCH"])
+@require_auth
+def inbox_ignore(cid):
+    mail = Mail.query.filter_by(mail_id = ("config/" + cid)).one()
+    if not mail:
+        return error(401, "MailError", "접근 오류")
+
+    member = dict(mail.member.__dict__)
+    if "_sa_instance_state" in member:
+        member.pop("_sa_instance_state", None)
+    if "mails" in member:
+        member.pop("mails", None)
+    
+    content = mail.content
+    t = {
+        "member": member,
+        "group": {"id":3, "name": "IZ*ONE"},
+        "id": mail.mail_id,
+        "subject": mail.subject, "subject_ko": mail.subject, "subject_in": mail.subject, "subject_th": mail.subject, 
+        "content": content, "content_ko": content, "content_in": content, "content_th": content, 
+        "receive_time": mail.time.strftime("%Y/%m/%d %H:%M"),
+        "receive_datetime": mail.time.strftime("%Y/%m/%d %H:%M:%S"),
+        "detail_url": "{}/{}".format(config.DETAIL_PREFIX, mail.mail_id), "detail_url_ko": "{}/{}".format(config.DETAIL_PREFIX, mail.mail_id), "detail_url_in": "{}/{}".format(config.DETAIL_PREFIX, mail.mail_id), "detail_url_th": "{}/{}".format(config.DETAIL_PREFIX, mail.mail_id), 
+        "is_unread": False,
+        "is_star": False, 
+        "is_image": mail.is_image
+    }
+    t["member"]["name"] = "설정"
+    return generate_json(t)
 
 @router.route("/inbox/<mid>", methods = ["PATCH"])
 @require_auth
 def inbox_read(mid):
-    mail = Mail.query.get(mid)
+    user = get_user()
+    mail = Mail.query.filter(mail_id = mid).one()
     if not mail:
         return error(401, "MailError", "접근 오류")
 
-    #TODO: implement
+    member = dict(mail.member.__dict__)
+    if "_sa_instance_state" in member:
+        member.pop("_sa_instance_state", None)
+    if "mails" in member:
+        member.pop("mails", None)
+    
+    content = resolve_name(mail.content, user.get_nickname(member["id"]))
+    t = {
+        "member": member,
+        "group": {"id":3, "name": "IZ*ONE"},
+        "id": mail.mail_id,
+        "subject": mail.subject, "subject_ko": mail.subject, "subject_in": mail.subject, "subject_th": mail.subject, 
+        "content": content, "content_ko": content, "content_in": content, "content_th": content, 
+        "receive_time": mail.time.strftime("%Y/%m/%d %H:%M"),
+        "receive_datetime": mail.time.strftime("%Y/%m/%d %H:%M:%S"),
+        "detail_url": "{}/{}".format(config.DETAIL_PREFIX, mail.mail_id), "detail_url_ko": "{}/{}".format(config.DETAIL_PREFIX, mail.mail_id), "detail_url_in": "{}/{}".format(config.DETAIL_PREFIX, mail.mail_id), "detail_url_th": "{}/{}".format(config.DETAIL_PREFIX, mail.mail_id), 
+        "is_unread": not user.is_read(mail.mail_id),
+        "is_star": user.is_read(mail.mail_id), 
+        "is_image": mail.is_image
+    }
+    t["member"]["name"] = user.m_names[mail.member.id]
+    return generate_json(t)
 
 @router.route("/menu")
 @require_auth
@@ -252,9 +306,25 @@ def menu():
                             "image_url": members[i].image_url
                         },
                         "unread_count": user.m_unreads[i]
-                    } for i in MEMBER_INDEX
+                    } for i in MEMBER_INDEX] + [
+                    {
+                        "member": {
+                            "id": 13,
+                            "name": "평행우주 프로젝트",
+                            "image_url": "https://wizone.s3.ap-northeast-2.amazonaws.com/izpm/profile/pu.jpg"
+                        },
+                        "unread_count": 0
+                    },
+                    {
+                        "member": {
+                            "id": 14,
+                            "name": "설정",
+                            "image_url": "https://wizone.s3.ap-northeast-2.amazonaws.com/izpm/profile/settings.png"
+                        },
+                        "unread_count": 0
+                    }
                 ]
-            }]
+            }],
         }],
     })
 
