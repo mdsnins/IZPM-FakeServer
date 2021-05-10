@@ -16,7 +16,10 @@ def get_user():
     if not u or u.access_token != request.headers.get("Access-Token", ""):
         return None
 
-    u.m_names   = u.member_names.split('|') # Explode from string value
+    t = u.member_names.split('|')
+    u.m_names = ['']
+    for i in range(1, 13):
+        u.m_names.append(t[i] if t[i] != '' else members[i].realname_ko)
     u.m_unreads = [int(x) for x in u.member_unreads.split('|')] # Explode from string value
     u.m_stars   = [int(x) for x in u.member_stars.split('|')]
     
@@ -44,7 +47,7 @@ def generate_mails(mails):
         if "mails" in member:
             member.pop("mails", None)
         
-        content = resolve_name(mail.content, user.nickname)
+        content = resolve_name(mail.content, user.get_nickname(member.member_id))
         t = {
             "member": member,
             "group": {"id":3, "name": "IZ*ONE"},
@@ -213,6 +216,15 @@ def inbox():
         "star_count": user.m_stars[member_id],
         "mails": generate_mails(mails)
     })
+
+@router.route("/inbox/<mid>", methods = ["PATCH"])
+@require_auth
+def inbox_read(mid):
+    mail = Mail.query.get(mid)
+    if not mail:
+        return error(401, "MailError", "접근 오류")
+
+    #TODO: implement
 
 @router.route("/menu")
 @require_auth

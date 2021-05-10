@@ -8,7 +8,7 @@ class User(Base):
     
     user_id = Column(String(32), primary_key = True)
     access_token = Column(String(32), unique = False)
-    nickname = Column(String(64), unique = False)
+    nickname = Column(String(32), unique = False)
     gender = Column(String(8), unique = False)
     country_code = Column(String(2), unique = False)
     prefecture_id = Column(Integer, unique = False)
@@ -21,6 +21,8 @@ class User(Base):
 
     reads = relationship('Mail', secondary = "MAIL_READ")
     stars = relationship('Mail', secondary = "MAIL_STAR")
+    
+    configs = relationship("Config", backref="user")
 
     m_names = []
     m_unreads = []
@@ -37,7 +39,7 @@ class User(Base):
         self.birthday = ""
         self.member_id = 0
 
-        self.member_names = "-|장원영|미야와키 사쿠라|조유리|최예나|안유진|야부키 나코|권은비|강혜원|혼다 히토미|김채원|김민주|이채연"
+        self.member_names = "-||||||||||||"
         self.member_unreads = "0|0|0|0|0|0|0|0|0|0|0|0|0"  # First column is for total
         self.member_stars = "0|0|0|0|0|0|0|0|0|0|0|0|0" # First column is for total
 
@@ -109,8 +111,19 @@ class User(Base):
         mail = Mail.query.get(id)
         if not mail:
             return False
-        
         return mail in self.stars
+
+    def get_config(self, key):
+        for c in self.configs:
+            if c.key == key:
+                return c
+        return None
+
+    def get_nickname(self, member_id):
+        c = self.get_config("m%d_nick" % member_id)
+        if (not c) or (not c.value):
+            return self.nickname
+        return c.value
 
 class Member(Base):
     __tablename__ = "MEMBER"
@@ -144,16 +157,22 @@ class Mail(Base):
     datetime = Column(DateTime, unique = False)
     is_image = Column(Boolean, unique = False)
 
+class Config(Base):
+    __tablename__ = "CONFIG"
+    id = Column(Integer, primary_key = True)
+    user_id = Column(String(16), ForeignKey("USER.user_id"))
+    key = Column(String(32), unique = False)
+    value = Column(String, unique = False)
 
 # Association Tables
 class MailReads(Base):
     __tablename__ = "MAIL_READ"
     id = Column(Integer, primary_key = True)
-    uid = Column(Integer, ForeignKey("USER.user_id"))
+    uid = Column(String(32), ForeignKey("USER.user_id"))
     mid = Column(Integer, ForeignKey("MAIL.id"))
 
 class MailStars(Base):
     __tablename__ = "MAIL_STAR"
     id = Column(Integer, primary_key = True)
-    uid = Column(Integer, ForeignKey("USER.user_id"))
+    uid = Column(String(32), ForeignKey("USER.user_id"))
     mid = Column(Integer, ForeignKey("MAIL.id"))
