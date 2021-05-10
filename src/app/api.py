@@ -43,12 +43,14 @@ def generate_mails(mails):
             member.pop("_sa_instance_state", None)
         if "mails" in member:
             member.pop("mails", None)
+        
+        content = resolve_name(mail.content, user.nickname)
         t = {
             "member": member,
             "group": {"id":3, "name": "IZ*ONE"},
             "id": mail.mail_id,
             "subject": mail.subject, "subject_ko": mail.subject, "subject_in": mail.subject, "subject_th": mail.subject, 
-            "content": mail.content, "content_ko": mail.content, "content_in": mail.content, "content_th": mail.content, 
+            "content": content, "content_ko": content, "content_in": content, "content_th": content, 
             "receive_time": mail.time.strftime("%Y/%m/%d %H:%M"),
             "receive_datetime": mail.time.strftime("%Y/%m/%d %H:%M:%S"),
             "detail_url": "{}/{}".format(config.DETAIL_PREFIX, mail.mail_id), "detail_url_ko": "{}/{}".format(config.DETAIL_PREFIX, mail.mail_id), "detail_url_in": "{}/{}".format(config.DETAIL_PREFIX, mail.mail_id), "detail_url_th": "{}/{}".format(config.DETAIL_PREFIX, mail.mail_id), 
