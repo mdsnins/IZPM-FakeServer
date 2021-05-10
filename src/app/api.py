@@ -72,7 +72,7 @@ def random_alphanumeric(length):
 def require_auth(endpoint):
     @wraps(endpoint)
 
-    def check(*arg, **kwargs):
+    def check(*args, **kwargs):
         if not get_user():
             return error(401, "AuthorizationError", "인증 오류")
         else:
