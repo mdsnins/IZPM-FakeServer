@@ -1,29 +1,15 @@
-import json
-import random
 import datetime
-from functools import wraps
 from flask import Flask, render_template, request, url_for, redirect, Blueprint, send_from_directory
 from sqlalchemy import desc
 from . import config
 from .model import *
 from .database import db_session
+from .tool import *
 
 router = Blueprint("api", __name__, subdomain = config.API_SUBDOMAIN)
 
 MEMBER_INDEX = [7, 2, 8, 4, 12, 10, 11, 6, 9, 3, 5, 1]
 members = []
-
-def error(code, name, message, id = "#B-0000-0000"):
-    return json.dumps({
-        "error": {
-            "data": {
-                "id": id,
-                "code": code,
-                "name": name,
-                "message": message
-            }
-        }
-    }, ensure_ascii = False), code, {'Content-Type': 'application/json; charset=UTF-8;'}
 
 def get_user():
     u = User.query.get(request.headers.get("User-Id", ""))
@@ -35,6 +21,18 @@ def get_user():
     u.m_stars   = [int(x) for x in u.member_stars.split('|')]
     
     return u
+
+# auth require decorator
+def require_auth(endpoint):
+    @wraps(endpoint)
+
+    def check(*args, **kwargs):
+        if not get_user():
+            return error(401, "AuthorizationError", "인증 오류")
+        else:
+            return endpoint(*args, **kwargs)
+    
+    return check
 
 def generate_mails(mails):
     result = []
@@ -61,24 +59,6 @@ def generate_mails(mails):
         t["member"]["name"] = user.m_names[mail.member.id]
         result.append(t)
     return result
-
-def generate_json(object):
-    return json.dumps(object, ensure_ascii = False), 200, {'Content-Type': 'application/json; charset=UTF-8;'}
-
-def random_alphanumeric(length):
-    return ''.join(random.choices('0123456789abcdefghijklmnopqrstuvwxyz', k=length))
-
-# auth require decorator
-def require_auth(endpoint):
-    @wraps(endpoint)
-
-    def check(*args, **kwargs):
-        if not get_user():
-            return error(401, "AuthorizationError", "인증 오류")
-        else:
-            return endpoint(*args, **kwargs)
-    
-    return check
 
 @router.before_app_first_request
 def api_init():
@@ -263,6 +243,11 @@ def menu():
             }]
         }],
     })
+
+@router.route("/courses/3")
+@require_auth
+def course_end():
+    return '{"error":{"data":{"id":"#B-0000-0000","code":400,"name":"BadRequest","message":"수신 코스의 신규 가입이 종료되었습니다."}}}', 200, {"Content-Type": "application/json"}
 
 @router.route("/menu_informations")
 @require_auth
