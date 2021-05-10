@@ -1,15 +1,14 @@
 import json
+from functools import wraps
 from flask import Flask, render_template, request, url_for, redirect, Blueprint, send_from_directory
 from sqlalchemy import desc
 from . import config
 from .model import *
 
 router = Blueprint("api", __name__, subdomain = config.API_SUBDOMAIN)
-members = []
 
-def api_init():
-    global members
-    members = Member.query.all()
+MEMBER_INDEX = [7, 2, 8, 4, 12, 10, 11, 6, 9, 3, 5, 1]
+members = []
 
 def error(code, name, message, id = "#B-0000-0000"):
     return json.dumps({
@@ -25,7 +24,7 @@ def error(code, name, message, id = "#B-0000-0000"):
 
 def get_user():
     u = User.query.get(request.headers.get("User-Id", ""))
-    if not u:
+    if not u or u.access_token != request.headers.get("Access-Token", ""):
         return None
 
     u.m_names   = u.member_names.split('|') # Explode from string value
@@ -60,18 +59,33 @@ def generate_mails(mails):
         result.append(t)
     return result
 
-@router.before_request
-def auth_header():
-    if not get_user():
-        return error(401, "AuthorizationError", "인증 오류")
+def generate_json(object):
+    return json.dumps(object, ensure_ascii = False), 200, {'Content-Type': 'application/json'}
+
+# auth require decorator
+def require_auth(endpoint):
+    @wraps(endpoint)
+
+    def check(*arg, **kwargs):
+        if not get_user():
+            return error(401, "AuthorizationError", "인증 오류")
+        else:
+            return endpoint(*args, **kwargs)
+    
+    return check
+
+@router.before_app_first_request
+def api_init():
+    global members
+    members = Member.query.all()
 
 @router.route("/users", methods = ["GET", "POST"])
 def users():
     user = get_user()
-    return json.dumps({
+    return generate_json({
         "user": {
             "id": user.user_id,
-            "access_token": "000000000000000000000000",
+            "access_token": user.access_token,
             "nickname": user.nickname,
             "gender": user.gender,
             "country_code": user.country_code,
@@ -79,26 +93,28 @@ def users():
             "birthday": user.birthday,
             "member_id": user.member_id
         }
-    }), 200, {'Content-Type': 'application/json'}
+    })
 
 @router.route("/application_settings")
 def application_settings():
-    return json.dumps({
+    return generate_json({
         "application_settings": {
             "is_mail_notice": False,
             "is_vibration": False,
             "is_sound": False
         }
-    }, ensure_ascii = False), 200, {'Content-Type': 'application/json'}
+    })
 
 @router.route("/informations")
+@require_auth
 def informations():
     #TODO: implement information management from admin console, not important for now
-    return json.dumps({
+    return generate_json({
         "informations": []
-    }, ensure_ascii = False), 200, {'Content-Type': 'application/json'}
+    })
 
 @router.route("/inbox")
+@require_auth
 def inbox():
     is_information = request.args.get("is_information")
     #drop group_id; not used in IZ*ONE PM
@@ -135,19 +151,20 @@ def inbox():
     
     total = len(mails)
     mails = mails[(page - 1)*20:page*20]
-    return json.dumps({
+    return generate_json({
         "mail_count": len(mails),
         "page": page,
         "has_next_page": page*20 < total,
         "unread_count": user.m_unreads[member_id],
         "star_count": user.m_stars[member_id],
         "mails": generate_mails(mails)
-    }, ensure_ascii = False), 200, {'Content-Type': 'application/json'}
+    })
 
 @router.route("/menu")
+@require_auth
 def menu():
     user = get_user()
-    return json.dumps({
+    return generate_json({
         "all_unread_count": user.m_unreads[0],
         "notification_unread_count": 0,
         "unread_count": user.m_unreads[0],
@@ -161,102 +178,47 @@ def menu():
             },
             "team_members": [{
                 "team_name": "IZ*ONE",
-                "members": [{
-                    "member": {
-                        "id": 7,
-                        "name": user.m_names[7],
-                        "image_url": members[7].image_url
-                    },
-                    "unread_count": user.m_unreads[7]
-                }, {
-                    "member": {
-                        "id": 2,
-                        "name": user.m_names[2],
-                        "image_url": members[2].image_url
-                    },
-                    "unread_count": user.m_unreads[2]
-                }, {
-                    "member": {
-                        "id": 8,
-                        "name": user.m_names[8],
-                        "image_url": members[8].image_url
-                    },
-                    "unread_count": user.m_unreads[8]
-                }, {
-                    "member": {
-                        "id": 4,
-                        "name": user.m_names[4],
-                        "image_url": members[4].image_url
-                    },
-                    "unread_count": user.m_unreads[4]
-                }, {
-                    "member": {
-                        "id": 12,
-                        "name": user.m_names[12],
-                        "image_url": members[12].image_url
-                    },
-                    "unread_count": user.m_unreads[12]
-                }, {
-                    "member": {
-                        "id": 10,
-                        "name": user.m_names[10],
-                        "image_url": members[10].image_url
-                    },
-                    "unread_count": user.m_unreads[10]
-                }, {
-                    "member": {
-                        "id": 11,
-                        "name": user.m_names[11],
-                        "image_url": members[11].image_url
-                    },
-                    "unread_count": user.m_unreads[11]
-                }, {
-                    "member": {
-                        "id": 7,
-                        "name": user.m_names[7],
-                        "image_url": members[7].image_url
-                    },
-                    "unread_count": user.m_unreads[7]
-                }, {
-                    "member": {
-                        "id": 6,
-                        "name": user.m_names[6],
-                        "image_url": members[6].image_url
-                    },
-                    "unread_count": user.m_unreads[6]
-                }, {
-                    "member": {
-                        "id": 9,
-                        "name": user.m_names[9],
-                        "image_url": members[9].image_url
-                    },
-                    "unread_count": user.m_unreads[9]
-                }, {
-                    "member": {
-                        "id": 3,
-                        "name": user.m_names[3],
-                        "image_url": members[3].image_url
-                    },
-                    "unread_count": user.m_unreads[3]
-                }, {
-                    "member": {
-                        "id": 5,
-                        "name": user.m_names[5],
-                        "image_url": members[5].image_url
-                    },
-                    "unread_count": user.m_unreads[5]
-                }, {
-                    "member": {
-                        "id": 1,
-                        "name": user.m_names[1],
-                        "image_url": members[1].image_url
-                    },
-                    "unread_count": user.m_unreads[1]
-                }]
+                "members": [
+                    {
+                        "member": {
+                            "id": i,
+                            "name": user.m_names[i],
+                            "image_url": members[i].image_url
+                        },
+                        "unread_count": user.m_unreads[i]
+                    } for i in MEMBER_INDEX
+                ]
             }]
         }],
-    }, ensure_ascii = False), 200, {'Content-Type': 'application/json'}
+    })
 
 @router.route("/menu_informations")
+@require_auth
 def menu_informations():
-    return json.dumps({}, ensure_ascii = False), 200, {'Content-Type': 'application/json'}
+    return generate_json({})
+
+@router.route("/members")
+def join_members():
+    return generate_json({
+        "group_count": 1,
+        "all_members": [{
+            "group":{
+                "id": 3,
+                "name": "IZ*ONE"
+            },
+            "team_members": [{
+                "team_name": "IZ*ONE",
+                "members": [
+                    {
+                        "id": i,
+                        "name": members[i].realname_ko,
+                        "image_url": members[i].image_url
+                    } for i in MEMBER_INDEX
+                ]
+            }]
+        }]
+    })
+
+@router.route("/countries")
+def join_countries():
+    return '{"countries":{"IN":{"name":"인도네시아","prefecture_list":{}},"TH":{"name":"태국","prefecture_list":{}},"KR":{"name":"대한민국","prefecture_list":{}},"JP":{"name":"일본","prefecture_list":{"1":"홋카이도","2":"아오모리켄","3":"이와테켄","4":"미야기켄","5":"아키타켄","6":"야마가타켄","7":"후쿠시마켄","8":"이바라키켄","9":"토치기켄","10":"군마켄","11":"사이타마켄","12":"치바켄","13":"도쿄도","14":"가나가와켄","15":"니가타켄","16":"도야마켄","17":"이시카와켄","18":"후쿠이켄","19":"야마나시켄","20":"나가노켄","21":"기후켄","22":"시즈오카켄","23":"아이치켄","24":"미에켄","25":"시가켄","26":"교토부","27":"오사카부","28":"효고켄","29":"나라켄","30":"와카야마켄","31":"돗토리켄","32":"시마네켄","33":"오카야마켄","34":"히로시마켄","35":"야마구치켄","36":"도쿠시마켄","37":"가가와켄","38":"에히메켄","39":"고치켄","40":"후쿠오카켄","41":"사가켄","42":"나가사키켄","43":"구마모토켄","44":"오이타켄","45":"미야자키켄","46":"가고시마켄","47":"오키나와켄"}}},"sort":["JP","KR","TH","IN"]}', 200, {"Content-Type": "application/json"}
