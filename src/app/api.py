@@ -1,9 +1,12 @@
 import json
+import random
+import datetime
 from functools import wraps
 from flask import Flask, render_template, request, url_for, redirect, Blueprint, send_from_directory
 from sqlalchemy import desc
 from . import config
 from .model import *
+from .database import db_session
 
 router = Blueprint("api", __name__, subdomain = config.API_SUBDOMAIN)
 
@@ -20,7 +23,7 @@ def error(code, name, message, id = "#B-0000-0000"):
                 "message": message
             }
         }
-    }, ensure_ascii = False), code, {'Content-Type': 'application/json'}
+    }, ensure_ascii = False), code, {'Content-Type': 'application/json; charset=UTF-8;'}
 
 def get_user():
     u = User.query.get(request.headers.get("User-Id", ""))
@@ -60,7 +63,10 @@ def generate_mails(mails):
     return result
 
 def generate_json(object):
-    return json.dumps(object, ensure_ascii = False), 200, {'Content-Type': 'application/json'}
+    return json.dumps(object, ensure_ascii = False), 200, {'Content-Type': 'application/json; charset=UTF-8;'}
+
+def random_alphanumeric(length):
+    return ''.join(random.choices('0123456789abcdefghijklmnopqrstuvwxyz', k=length))
 
 # auth require decorator
 def require_auth(endpoint):
@@ -79,23 +85,89 @@ def api_init():
     global members
     members = Member.query.all()
 
-@router.route("/users", methods = ["GET", "POST"])
+@router.route("/users", methods = ["GET", "POST", "PATCH"])
 def users():
-    user = get_user()
-    return generate_json({
-        "user": {
-            "id": user.user_id,
-            "access_token": user.access_token,
-            "nickname": user.nickname,
-            "gender": user.gender,
-            "country_code": user.country_code,
-            "prefecture_id": user.prefecture_id,
-            "birthday": user.birthday,
-            "member_id": user.member_id
-        }
-    })
+    if request.method == "GET" or request.method == "PATCH":
+        user = get_user()
+        if not user:
+            return error(401, "AuthorizationError", "인증 오류")
+        if request.method == "PATCH":
+            bday = request.form.get("birthday", "")
+            ccode = request.form.get("country_code", "")
+            pfid = request.form.get("prefecture_id", "-1")
+            gender = request.form.get("gender", "")
+            member_id = request.form.get("member_id", "")
+            nickname = request.form.get("nickname", "")
+            
+            # PATCH data validation
+            try:
+                if bday != "":
+                    datetime.datetime.strptime(bday, "%Y%m%d") #try parse as datetime
+                if ccode != "":
+                    if ccode == "JP":
+                        pfid = int(pfid)
+                        if pfid < 1 or pfid > 47:
+                            return error(403, "ValueError", "값 오류")
+                    elif ccode in ["KR", "TH", "IN"]:
+                        pfid = -1
+                    else:
+                        return error(403, "ValueError", "값 오류")
+                if gender != "" and not gender in ["male", "female"]:
+                    return error(403, "ValueError", "값 오류")
+                if member_id != "":
+                    t = int(member_id)
+                    if t < 1 or t > 12:
+                        return error(403, "ValueError", "값 오류")
+                if len(nickname) > 32:
+                    return error(403, "ValueError", "값 오류")
+            except Exception as e:
+                return error(403, "ValueError")
+            
+            # data update
+            if bday != "" and user.birthday == "": # Birthday shouldn't be able to be updated
+                user.birthday = bday 
+            if ccode != "":
+                user.country_code = ccode
+                user.prefecture_id = pfid
+            if gender != "":
+                user.gender = gender
+            if member_id != "":
+                user.member_id = member_id
+            if nickname != "":
+                user.nickname = nickname
+            
+            db_session.commit()
 
-@router.route("/application_settings")
+        return generate_json({
+            "user": {
+                "id": user.user_id,
+                "access_token": user.access_token,
+                "nickname": user.nickname,
+                "gender": user.gender,
+                "country_code": user.country_code,
+                "prefecture_id": user.prefecture_id,
+                "birthday": user.birthday,
+                "member_id": user.member_id
+            }
+        })
+
+    elif request.method == "POST":
+        u = User()
+        u.user_id = random_alphanumeric(12)
+        u.access_token = random_alphanumeric(24)
+        db_session.add(u)
+        db_session.commit()
+
+        return generate_json({
+            "user": {
+                "id": u.user_id,
+                "access_token": u.access_token
+            }
+        })
+    else:
+        return error(405, "RequestError", "요청 오류")
+
+@router.route("/application_settings", methods = ["GET", "PATCH"])
 def application_settings():
     return generate_json({
         "application_settings": {

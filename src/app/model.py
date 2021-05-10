@@ -30,6 +30,13 @@ class User(Base):
         self.all_unread_count = 0
         self.star_count = 0
 
+        self.nickname = ""
+        self.gender = ""
+        self.country_code = ""
+        self.prefecture_id = -1
+        self.birthday = ""
+        self.member_id = 0
+
         self.member_names = "-|장원영|미야와키 사쿠라|조유리|최예나|안유진|야부키 나코|권은비|강혜원|혼다 히토미|김채원|김민주|이채연"
         self.member_unreads = "0|0|0|0|0|0|0|0|0|0|0|0|0"  # First column is for total
         self.member_stars = "0|0|0|0|0|0|0|0|0|0|0|0|0" # First column is for total
