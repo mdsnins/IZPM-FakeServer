@@ -7,6 +7,7 @@ class User(Base):
     __tablename__ = "USER"
     
     user_id = Column(String(32), primary_key = True)
+    access_token = Column(String(32), unique = False)
     nickname = Column(String(64), unique = False)
     gender = Column(String(8), unique = False)
     country_code = Column(String(2), unique = False)
