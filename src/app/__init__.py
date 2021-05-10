@@ -71,7 +71,7 @@ def test_db():
     u.country_code = "KR"
     u.prefecture_id = -1
     u.birthday = "20181029"
-    membeR_id = 1
+    u.member_id = 1
 
     database.db_session.add(u)
 
