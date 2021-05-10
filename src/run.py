@@ -4,7 +4,6 @@ from app import *
 
 if __name__ == "__main__":
     if argv[1] == "run":
-        init()
         app.run(host = "0.0.0.0", port = 1000, debug = True)
     elif argv[1] == "initdb":
         init_db()
