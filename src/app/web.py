@@ -14,7 +14,7 @@ def getcss(path):
 def getjs(path):
     return send_from_directory("static/js", path)
 
-# About user registration (Agreements)
+# About static pages
 @router.route("/pages/kiyaku")
 def kiyaku():
     return send_file("static/web/kiyaku.html")
@@ -22,3 +22,8 @@ def kiyaku():
 @router.route("/pages/privacy")
 def privacy():
     return send_file("static/web/privacy.html")
+
+@router.route("/pages/tutorial")
+def tutorial():
+    return send_file("static/web/tutorial.html")
+    
