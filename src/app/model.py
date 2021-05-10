@@ -19,10 +19,10 @@ class User(Base):
     member_unreads = Column(String(84), unique = False)
     member_stars = Column(String(84), unique = False)
 
-    reads = relationship('Mail', secondary = "MAIL_READ")
-    stars = relationship('Mail', secondary = "MAIL_STAR")
+    reads = relationship('Mail', cascade="delete", secondary = "MAIL_READ")
+    stars = relationship('Mail', cascade="delete", secondary = "MAIL_STAR")
     
-    configs = relationship("Config", backref="user")
+    configs = relationship("Config", cascade="delete", backref="user")
 
     m_names = []
     m_unreads = []
@@ -134,7 +134,7 @@ class Member(Base):
     realname_in = Column(String(12), unique = False)
     image_url = Column(String(256), unique = False)
 
-    mails = relationship("Mail", backref="member")
+    mails = relationship("Mail", cascade="delete", backref="member")
 
     def __init__(self, id, name, name_global, image_url):
         self.id = id
