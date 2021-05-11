@@ -29,7 +29,20 @@ python3 run.py initdb
 python3 run.py testdb
 ```
 
-6. Run. You can use [uwsgi.ini.sample](./src/uwsgi.ini.sample) if you need uWSGI configuration
+6. Place the private mail data properly. In this manual, it doesn't care about where images are. Static serves such as Amazon S3 are strongly recommended.
+
+- Place `pm.js` from [IZPM-Backup](https://github.com/mdsnins/izpm-backup) in same directory with `run.py`
+- Place 'mail' folder from [IZPM-Backup](https://github.com/mdsnins/izpm-backup) as `app/static/web/mail`
+
+Then, 
+
+```bash
+python3 run.py loadpm
+```
+
+It will parse `pm.js` and insert mails into database automatically.
+
+7. Run. You can use [uwsgi.ini.sample](./src/uwsgi.ini.sample) if you need uWSGI configuration
  
 ```bash
 python3 run.py run  
