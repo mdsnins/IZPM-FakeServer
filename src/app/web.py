@@ -52,7 +52,17 @@ def user_config(cid):
             c = user.get_config("m%d_nick" % i)
             m_nick.append(c.value if c is not None else "")
         return render_template("config/member_name.html", m_nick = m_nick, user_id = request.headers.get("User-Id"), access_token = request.headers.get("Access-Token"))
+    elif cid == "common":
+        configs = {}
+        
+        ppos = user.get_config("ppos")
+        translate = user.get_config("translate")
+        
+        configs["ppos"] = ppos.value if ppos else None
+        configs["translate"] = translate.value if translate else None
 
+        return render_template("config/common.html", configs = configs, user_id = request.headers.get("User-Id"), access_token = request.headers.get("Access-Token"))
+        
 # Mail
 @router.route("/mail/<mid>")
 def inbox_read(mid):
@@ -60,13 +70,19 @@ def inbox_read(mid):
     if not user:
         return error(401, "AuthorizationError", "인증 오류")
 
-    mail = Mail.query.get(mid)
+    mail = Mail.query.filter_by(mail_id = mid).one()
     if not mail:
         return error(401, "MailError", "접근 오류")
 
-    #TODO: implement
-    pass
+    f = open('app/static/web/mail/%s.html' % mail.mail_id, "r")
+    body = f.read()
+    f.close()
 
+    ppos = user.get_config("ppos")
+    ppos = ppos.value if ppos else "0"
+
+    print(body)
+    return resolve_name(body, user.get_nickname(mail.member.id), ppos == "1")
 
 # Support Extensions
 @router.route("/config/<key>", methods = ["GET", "POST"])
@@ -80,6 +96,7 @@ def new_config(key):
     if request.method == "POST":    
         if c:
             c.value = v
+            db_session.commit()
             return generate_json({"code": 200, "msg": "success"})
 
         c = Config()

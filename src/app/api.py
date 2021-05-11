@@ -48,8 +48,11 @@ def generate_mails(mails):
             member.pop("_sa_instance_state", None)
         if "mails" in member:
             member.pop("mails", None)
-        
-        content = resolve_name(mail.content, user.get_nickname(member["id"]))
+            
+        ppos = user.get_config("ppos")
+        ppos = ppos.value if ppos else "0"
+
+        content = resolve_name(mail.content, user.get_nickname(member["id"]), ppos == "1")
         t = {
             "member": member,
             "group": {"id":3, "name": "IZ*ONE"},
@@ -253,7 +256,7 @@ def inbox_ignore(cid):
 @require_auth
 def inbox_read(mid):
     user = get_user()
-    mail = Mail.query.filter(mail_id = mid).one()
+    mail = Mail.query.filter_by(mail_id = mid).one()
     if not mail:
         return error(401, "MailError", "접근 오류")
 
