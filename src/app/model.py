@@ -19,11 +19,12 @@ class User(Base):
     member_unreads = Column(String(84), unique = False)
     member_stars = Column(String(84), unique = False)
 
-    reads = relationship('Mail', cascade="delete", secondary = "MAIL_READ")
-    stars = relationship('Mail', cascade="delete", secondary = "MAIL_STAR")
+    mails = relationship('Mail', secondary = "MAIL_AVAIL", lazy = "dynamic")  # User readable mails
+    reads = relationship('Mail', secondary = "MAIL_READ")
+    stars = relationship('Mail', secondary = "MAIL_STAR")
     
     configs = relationship("Config", cascade="delete", backref="user")
-
+    
     m_names = []
     m_unreads = []
     m_stars = []
@@ -165,6 +166,12 @@ class Config(Base):
     value = Column(String, unique = False)
 
 # Association Tables
+class MailSubscribes(Base):
+    __tablename__ = "MAIL_AVAIL"
+    id = Column(Integer, primary_key = True)
+    uid = Column(String(32), ForeignKey("USER.user_id"))
+    mid = Column(Integer, ForeignKey("MAIL.id"))
+
 class MailReads(Base):
     __tablename__ = "MAIL_READ"
     id = Column(Integer, primary_key = True)
