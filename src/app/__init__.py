@@ -12,6 +12,7 @@ from .web import router as web_router
 
 app = Flask(__name__)
 app.config["SERVER_NAME"] = config.SERVER_NAME
+app.config["UPLOAD_FOLDER"] = "/tmp"
 app.secret_key = urandom(16)
 
 app.register_blueprint(api_router, url_prefix='/v1')
@@ -30,11 +31,56 @@ def init_db():
     database.db_session.add(model.Member(6, "야부키 나코", "YABUKI NAKO", config.IMAGE_PREFIX + "/6.jpg"))
     database.db_session.add(model.Member(7, "권은비", "KWON EUN BI", config.IMAGE_PREFIX + "/7.jpg"))
     database.db_session.add(model.Member(8, "강혜원", "KANG HYE WON", config.IMAGE_PREFIX + "/8.jpg"))
-    database.db_session.add(model.Member(9, "혼다 히토미", "HONDA HITOMI", config.IMAGE_PREFIX + "/19.jpg"))
+    database.db_session.add(model.Member(9, "혼다 히토미", "HONDA HITOMI", config.IMAGE_PREFIX + "/9.jpg"))
     database.db_session.add(model.Member(10, "김채원", "KIM CHAE WON", config.IMAGE_PREFIX + "/10.jpg"))
     database.db_session.add(model.Member(11, "김민주", "KIM MIN JU", config.IMAGE_PREFIX + "/11.jpg"))
     database.db_session.add(model.Member(12, "이채연", "LEE CHAE YEON", config.IMAGE_PREFIX + "/12.jpg"))
+
+    database.db_session.add(model.Member(13, "평행우주 프로젝트", "IZ PU PROJECT", config.IMAGE_PREFIX + "/pu.jpg"))
+    database.db_session.add(model.Member(14, "설정", "SETTINGS", config.IMAGE_PREFIX + "/settings.png"))
+
+    database.db_session.commit()
     
+    pu = model.Member.query.all()[13]
+    settings = model.Member.query.all()[14]
+
+    m = model.Mail()
+    m.mail_id = "config/member_name"
+    m.subject = "멤버별 닉네임 설정"
+    m.content = "멤버별 수신 별명 설정은 여기서 해주세요."
+    m.time = datetime.datetime.strptime("2018/10/29 00:00", "%Y/%m/%d %H:%M")
+    m.datetime = datetime.datetime.strptime("2018/10/29 00:00", "%Y/%m/%d %H:%M")
+    m.is_image = False
+    m.member_id = 14
+
+    settings.mails.append(m)
+    database.db_session.add(m)
+    database.db_session.commit()
+
+    m = model.Mail()
+    m.mail_id = "config/common"
+    m.subject = "일반 설정"
+    m.content = "조사 자동 변경, 번역 버튼 활성화 등의 설정"
+    m.time = datetime.datetime.strptime("2018/10/29 00:00", "%Y/%m/%d %H:%M")
+    m.datetime = datetime.datetime.strptime("2018/10/29 00:00", "%Y/%m/%d %H:%M")
+    m.is_image = False
+    m.member_id = 14
+
+    settings.mails.append(m)
+    database.db_session.add(m)
+    database.db_session.commit()
+
+    m = model.Mail()
+    m.mail_id = "config/restore"
+    m.subject = "백업 불러오기"
+    m.content = "서비스 이용을 위해 pm.json을 등록해주세요."
+    m.time = datetime.datetime.strptime("2018/10/29 00:00", "%Y/%m/%d %H:%M")
+    m.datetime = datetime.datetime.strptime("2018/10/29 00:00", "%Y/%m/%d %H:%M")
+    m.is_image = False
+    m.member_id = 14
+
+    settings.mails.append(m)
+    database.db_session.add(m)
     database.db_session.commit()
 
 def load_pm(pm_data):
@@ -65,7 +111,8 @@ def load_pm(pm_data):
 
 def test_db():
     u = model.User()
-    u.user_id = "AAAABBBB"
+    u.user_id = "AAAABBBBCCCCDDDD"
+    u.access_token = "ABCDABCDABCDABCD"
     u.nickname = "테스트"
     u.gender = "male"
     u.country_code = "KR"
@@ -74,18 +121,6 @@ def test_db():
     u.member_id = 1
 
     database.db_session.add(u)
-
-    m = model.Mail()
-    m.mail_id = "m1"
-    m.subject = "테스트 메일"
-    m.content = "이건 테스트 메일입니다"
-    m.member_id = 1
-    m.time = datetime.datetime.now()
-    m.datetime = datetime.datetime.now()
-    m.is_image = True
-
-    database.db_session.add(m)
-
     database.db_session.commit()
 
 def init():
