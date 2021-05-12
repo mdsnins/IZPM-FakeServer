@@ -29,20 +29,16 @@ def resolve_name(body, name, postposition = False):
     # If postposition replacement is enabled, check name first
     replace_flag = True
     last = ord(name[-1]) - 44032
-    print(last)
     if last < 0 or 11171 < last:   # If not Korean
         replace_flag = False
     elif last % 28 == 0:
         replace_flag = False   # No last letter
 
-    print(replace_flag)
     while True:
         i = body.find("<위즈원>")
         if i < 0:
             break
         
-        print("\n\n")
-        print(body[i+5])
         try:
             if body[i+5] in ["이", "가"] and body[i+6] == " ":
                 body = body[:i] + name +  ("이" if replace_flag else "가") + body[i+6:]
