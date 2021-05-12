@@ -13,6 +13,7 @@ from .web import router as web_router
 app = Flask(__name__)
 app.config["SERVER_NAME"] = config.SERVER_NAME
 app.config["UPLOAD_FOLDER"] = "/tmp"
+app.config["MAX_CONTENT_LENGTH"] = 2.5 * 1024 * 1024
 app.secret_key = urandom(16)
 
 app.register_blueprint(api_router, url_prefix='/v1')
