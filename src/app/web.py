@@ -1,3 +1,7 @@
+import base64
+import time
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad, unpad
 from flask import Flask, render_template, request, url_for, redirect, Blueprint, send_from_directory, send_file
 from . import config
 from .model import *
@@ -62,7 +66,77 @@ def user_config(cid):
         configs["translate"] = translate.value if translate else None
 
         return render_template("config/common.html", configs = configs, user_id = request.headers.get("User-Id"), access_token = request.headers.get("Access-Token"))
-        
+    elif cid == "restore":
+        cipher = AES.new(config.CRYPTO_KEY, AES.MODE_ECB)
+        payload = (str(int(time.time())) + "|" + request.headers.get("User-Id") + "|" + request.headers.get("Access-Token")).encode()
+        payload = cipher.encrypt(pad(payload, 16))
+        payload = base64.b64encode(payload).decode().replace("+", ".")
+        link = url_for("web.user_register", _external = True) + "?token=" + payload
+        return render_template("config/restore.html", link = link)
+
+@router.route("/register", methods = ["GET", "POST"])
+def user_register():
+    token = request.args.get("token", "")
+    if token == "":
+        return render_template("config/restore_register.html", err = "잘못된 접근입니다.")
+
+    cipher = AES.new(config.CRYPTO_KEY, AES.MODE_ECB)
+    uid, at = "", ""
+    try:
+        payload = base64.b64decode(token.replace(".", "+"))
+        payload = unpad(cipher.decrypt(payload), 16).decode()
+        pt = payload.split("|") 
+
+        ts = int(pt[0])
+        if time.time() - ts > 1800:
+            return render_template("config/restore_register.html", err = "만료된 링크입니다.")
+        uid, at = pt[1], pt[2]
+    except Exception as e:
+        print(e)
+        return render_template("config/restore_register.html", err = "잘못된 접근입니다.")
+    
+
+    user = get_user(user_id = uid, access_token = at)
+    if not user:
+        return render_template("config/restore_register.html", err = "올바르지 않은 계정입니다.")
+
+    if request.method == "GET":
+        return render_template("config/restore_register.html", nick = user.nickname, token = token)
+    
+    pm_data = json.loads(request.files['pmfile'].read())
+    user.mails = [] #Clear all mails first
+    for m in Mail.query.filter_by(member_id = 14).all():
+        user.mails.append(m)
+    db_session.commit()
+    processed = 0
+    skipped = []
+    mid = ""
+    try:
+        for pm in pm_data:
+            if pm["member"] == "운영팀":
+                continue
+            mid = pm["id"]
+            m = Mail.query.filter_by(mail_id = mid).one()
+            if not m:
+                skipped.append(mid)
+                continue
+            user.mails.append(m)
+            processed += 1
+
+        db_session.commit()
+        request.files['pmfile'].save("{}/{}.js".format(config.PMJS_PATH, uid))
+    except Exception as e:
+        print(e)
+        return render_template("config/restore_register.html", err = "{} 처리 중 에러가 발생하였습니다.<br>{}".format(mid, e))
+
+    if len(skipped) > 0:
+        return render_template("config/restore_register.html",
+                                msg = "{}개의 메일을 등록하였습니다.".format(processed),
+                                warn = "{}개의 메일은 실패하였습니다.<br>관리자에게 연락 바랍니다.<br>세부사항 : {}".format(len(skipped), ','.join(skipped)))
+    
+    return render_template("config/restore_register.html", msg = "{}개의 메일을 등록하였습니다!".format(processed))
+      
+
 # Mail
 @router.route("/mail/<mid>")
 def inbox_read(mid):
@@ -81,7 +155,6 @@ def inbox_read(mid):
     ppos = user.get_config("ppos")
     ppos = ppos.value if ppos else "0"
 
-    print(body)
     return resolve_name(body, user.get_nickname(mail.member.id), ppos == "1")
 
 # Support Extensions

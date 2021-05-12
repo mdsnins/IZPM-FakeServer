@@ -22,6 +22,7 @@ def get_user():
         u.m_names.append(t[i] if t[i] != '' else members[i].realname_ko)
     u.m_names.append("평행우주 프로젝트")
     u.m_names.append("설정")
+    
     u.m_unreads = [int(x) for x in u.member_unreads.split('|')] # Explode from string value
     u.m_stars   = [int(x) for x in u.member_stars.split('|')]
     
@@ -145,6 +146,8 @@ def users():
         u = User()
         u.user_id = random_alphanumeric(12)
         u.access_token = random_alphanumeric(24)
+        for m in Mail.query.filter_by(member_id = 14).all():
+            u.mails.append(m)
         db_session.add(u)
         db_session.commit()
 
@@ -202,9 +205,9 @@ def inbox():
     mails = []
     
     if member_id == 0:
-        mails = Mail.query.order_by(desc(Mail.datetime)).all()
+        mails = user.mails.filter(Mail.member_id < 13).order_by(desc(Mail.datetime)).all()
     else:
-        mails = members[member_id].mails
+        mails = user.mails.filter_by(member_id = member_id).all()
     
     if is_star != "0" and is_star != "false":
         mails = [m for m in mails if user.is_star(m.id)]
@@ -259,7 +262,9 @@ def inbox_read(mid):
     mail = Mail.query.filter_by(mail_id = mid).one()
     if not mail:
         return error(401, "MailError", "접근 오류")
-
+    elif not mail in user.mails:
+        return error(401, "MailError", "접근 오류")
+    
     member = dict(mail.member.__dict__)
     if "_sa_instance_state" in member:
         member.pop("_sa_instance_state", None)

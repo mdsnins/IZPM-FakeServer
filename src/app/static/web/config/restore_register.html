@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <title>백업 등록</title>
+        <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no">
+        <meta name="format-detection" content="telephone=no">
+        <link href="/css/register.css" rel="stylesheet">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link href="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/css/bootstrap4-toggle.min.css" rel="stylesheet">
+    </head>
+    <body>
+        <div class="container">
+            <div class="col-md-6 mx-auto text-center">
+               <div class="header-title">
+                  <h2 class="wv-heading--subtitle">
+                     IZPM 백업 데이터 등록
+                  </h2>
+               </div>
+            </div>
+            <div class="row">
+               <div class="col-md-6 mx-auto">
+                  {% if err %}
+                  <div class="alert alert-danger" role="alert">
+                    {{ err|safe }}
+                  </div>
+                  {% endif %}
+                  {% if msg %}
+                  <div class="alert alert-success" role="alert">
+                    {{ msg|safe }}
+                  </div>
+                  {% endif %}
+                  {% if warn %}
+                  <div class="alert alert-warning" role="alert">
+                    {{ warn|safe }}
+                  </div>
+                  {% endif %}
+                  {% if nick and token %}
+                  <div class="alert alert-primary" role="alert">
+                     <a href="https://gall.dcinside.com/mgallery/board/view/?id=wonyeong&no=385690">링크</a>를 참고하여 <code>pm_upload.json</code>을 생성해주세요.
+                  </div>
+                  <div class="myform form"> 
+                    <form method="post" enctype="multipart/form-data">
+                        <div class="form-group">
+                           <label for="name">닉네임</label>
+                           <input type="text" class="form-control my-input" id="name" value="{{ nick }}" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label for="pmfile">pm_upload.json 파일 선택</label>
+                            <input type="file" class="form-control-file" id="pmfile" name="pmfile">
+                        </div>
+                        <p>시간이 다소 소요될 수 있으니, 기다려 주시기 바랍니다.</p>
+                        <input type="hidden" name="token" value="{{ token }}">
+                        <div class="text-center">
+                           <button type="submit" class="btn btn-block btn-primary">등록</button>
+                        </div>
+                    </form>
+                  </div>
+                  {% endif %}
+               </div>
+            </div>
+         </div>
+        <script type="text/javascript" src="/js/jquery-3.3.1.min.js"></script>
+        <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.min.js"></script>
+    </body>
+</html>
