@@ -63,8 +63,8 @@ def generate_mails(mails):
             "receive_time": mail.time.strftime("%Y/%m/%d %H:%M"),
             "receive_datetime": mail.time.strftime("%Y/%m/%d %H:%M:%S"),
             "detail_url": "{}/{}".format(config.DETAIL_PREFIX, mail.mail_id), "detail_url_ko": "{}/{}".format(config.DETAIL_PREFIX, mail.mail_id), "detail_url_in": "{}/{}".format(config.DETAIL_PREFIX, mail.mail_id), "detail_url_th": "{}/{}".format(config.DETAIL_PREFIX, mail.mail_id), 
-            "is_unread": not user.is_read(mail.mail_id),
-            "is_star": user.is_read(mail.mail_id), 
+            "is_unread": not user.is_read(mail.id),
+            "is_star": user.is_star(mail.id), 
             "is_image": mail.is_image
         }
         t["member"]["name"] = user.m_names[mail.member.id]
@@ -170,13 +170,14 @@ def application_settings():
         }
     })
 
-@router.route("/informations")
+@router.route("/countries")
+def join_countries():
+    return '{"countries":{"IN":{"name":"인도네시아","prefecture_list":{}},"TH":{"name":"태국","prefecture_list":{}},"KR":{"name":"대한민국","prefecture_list":{}},"JP":{"name":"일본","prefecture_list":{"1":"홋카이도","2":"아오모리켄","3":"이와테켄","4":"미야기켄","5":"아키타켄","6":"야마가타켄","7":"후쿠시마켄","8":"이바라키켄","9":"토치기켄","10":"군마켄","11":"사이타마켄","12":"치바켄","13":"도쿄도","14":"가나가와켄","15":"니가타켄","16":"도야마켄","17":"이시카와켄","18":"후쿠이켄","19":"야마나시켄","20":"나가노켄","21":"기후켄","22":"시즈오카켄","23":"아이치켄","24":"미에켄","25":"시가켄","26":"교토부","27":"오사카부","28":"효고켄","29":"나라켄","30":"와카야마켄","31":"돗토리켄","32":"시마네켄","33":"오카야마켄","34":"히로시마켄","35":"야마구치켄","36":"도쿠시마켄","37":"가가와켄","38":"에히메켄","39":"고치켄","40":"후쿠오카켄","41":"사가켄","42":"나가사키켄","43":"구마모토켄","44":"오이타켄","45":"미야자키켄","46":"가고시마켄","47":"오키나와켄"}}},"sort":["JP","KR","TH","IN"]}', 200, {"Content-Type": "application/json"}
+
+@router.route("/courses/3")
 @require_auth
-def informations():
-    #TODO: implement information management from admin console, not important for now
-    return generate_json({
-        "informations": []
-    })
+def course_end():
+    return '{"error":{"data":{"id":"#B-0000-0000","code":400,"name":"BadRequest","message":"수신 코스의 신규 가입이 종료되었습니다."}}}', 200, {"Content-Type": "application/json"}
 
 @router.route("/inbox")
 @require_auth
@@ -264,6 +265,16 @@ def inbox_read(mid):
         return error(401, "MailError", "접근 오류")
     elif not mail in user.mails:
         return error(401, "MailError", "접근 오류")
+
+    tp = request.form.get("type", "")
+    if tp == "is_already_read":
+        user.read_mail(mail.id)
+    elif tp == "is_star":
+        if request.form.get("value", "0") == "1":
+            user.star_mail(mail.id)
+        else:
+            user.unstar_mail(mail.id)
+
     
     member = dict(mail.member.__dict__)
     if "_sa_instance_state" in member:
@@ -281,12 +292,42 @@ def inbox_read(mid):
         "receive_time": mail.time.strftime("%Y/%m/%d %H:%M"),
         "receive_datetime": mail.time.strftime("%Y/%m/%d %H:%M:%S"),
         "detail_url": "{}/{}".format(config.DETAIL_PREFIX, mail.mail_id), "detail_url_ko": "{}/{}".format(config.DETAIL_PREFIX, mail.mail_id), "detail_url_in": "{}/{}".format(config.DETAIL_PREFIX, mail.mail_id), "detail_url_th": "{}/{}".format(config.DETAIL_PREFIX, mail.mail_id), 
-        "is_unread": not user.is_read(mail.mail_id),
-        "is_star": user.is_read(mail.mail_id), 
+        "is_unread": False,
+        "is_star": user.is_star(mail.id), 
         "is_image": mail.is_image
     }
     t["member"]["name"] = user.m_names[mail.member.id]
-    return generate_json(t)
+    return generate_json({"mail": t})
+
+@router.route("/informations")
+@require_auth
+def informations():
+    #TODO: implement information management from admin console, not important for now
+    return generate_json({
+        "informations": []
+    })
+
+@router.route("/members")
+def join_members():
+    return generate_json({
+        "group_count": 1,
+        "all_members": [{
+            "group":{
+                "id": 3,
+                "name": "IZ*ONE"
+            },
+            "team_members": [{
+                "team_name": "IZ*ONE",
+                "members": [
+                    {
+                        "id": i,
+                        "name": members[i].realname_ko,
+                        "image_url": members[i].image_url
+                    } for i in MEMBER_INDEX
+                ]
+            }]
+        }]
+    })
 
 @router.route("/menu")
 @require_auth
@@ -336,38 +377,36 @@ def menu():
         }],
     })
 
-@router.route("/courses/3")
-@require_auth
-def course_end():
-    return '{"error":{"data":{"id":"#B-0000-0000","code":400,"name":"BadRequest","message":"수신 코스의 신규 가입이 종료되었습니다."}}}', 200, {"Content-Type": "application/json"}
-
 @router.route("/menu_informations")
 @require_auth
 def menu_informations():
     return generate_json({})
 
-@router.route("/members")
-def join_members():
-    return generate_json({
-        "group_count": 1,
-        "all_members": [{
-            "group":{
-                "id": 3,
-                "name": "IZ*ONE"
-            },
-            "team_members": [{
-                "team_name": "IZ*ONE",
-                "members": [
-                    {
-                        "id": i,
-                        "name": members[i].realname_ko,
-                        "image_url": members[i].image_url
-                    } for i in MEMBER_INDEX
-                ]
-            }]
-        }]
-    })
+@router.route("/user-member-customdata", methods = ["GET", "PUT"])
+@require_auth
+def user_member_customdata():
+    user = get_user()
+    if request.method == "PUT":
+        member_id = request.form.get("id", "0")
+        customized_name = request.form.get("customized_name", "")
+    
+        try:
+            member_id = int(member_id)
+        except:
+            return error(403, "ValueError", "값 오류")
+        if len(customized_name) >= 8 or member_id < 1 or member_id > 12 :
+            return error(403, "ValueError", "값 오류")
 
-@router.route("/countries")
-def join_countries():
-    return '{"countries":{"IN":{"name":"인도네시아","prefecture_list":{}},"TH":{"name":"태국","prefecture_list":{}},"KR":{"name":"대한민국","prefecture_list":{}},"JP":{"name":"일본","prefecture_list":{"1":"홋카이도","2":"아오모리켄","3":"이와테켄","4":"미야기켄","5":"아키타켄","6":"야마가타켄","7":"후쿠시마켄","8":"이바라키켄","9":"토치기켄","10":"군마켄","11":"사이타마켄","12":"치바켄","13":"도쿄도","14":"가나가와켄","15":"니가타켄","16":"도야마켄","17":"이시카와켄","18":"후쿠이켄","19":"야마나시켄","20":"나가노켄","21":"기후켄","22":"시즈오카켄","23":"아이치켄","24":"미에켄","25":"시가켄","26":"교토부","27":"오사카부","28":"효고켄","29":"나라켄","30":"와카야마켄","31":"돗토리켄","32":"시마네켄","33":"오카야마켄","34":"히로시마켄","35":"야마구치켄","36":"도쿠시마켄","37":"가가와켄","38":"에히메켄","39":"고치켄","40":"후쿠오카켄","41":"사가켄","42":"나가사키켄","43":"구마모토켄","44":"오이타켄","45":"미야자키켄","46":"가고시마켄","47":"오키나와켄"}}},"sort":["JP","KR","TH","IN"]}', 200, {"Content-Type": "application/json"}
+        if user.change_name(member_id, customized_name) < 0:
+            return error(403, "ValueError", "값 오류")
+    return generate_json({
+        "customized_member_list":[
+            {
+                "id": i,
+                "name": members[i].realname_ko,
+                "image_url": members[i].image_url,
+                "customized_name": user.m_names[i],
+                "sort_number": j
+            } for i, j in zip(MEMBER_INDEX, range(1, 13))
+        ]
+    })

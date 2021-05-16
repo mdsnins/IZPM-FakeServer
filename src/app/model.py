@@ -44,6 +44,14 @@ class User(Base):
         self.member_unreads = "0|0|0|0|0|0|0|0|0|0|0|0|0"  # First column is for total
         self.member_stars = "0|0|0|0|0|0|0|0|0|0|0|0|0" # First column is for total
 
+    def clear_read(self):
+        self.m_unreads = [0] * 13
+        for mail in self.mails:
+            self.m_unreads[mail.member_id] += 1
+            self.m_unreads[0] += 1
+        self.member_unreads = '|'.join([str(x) for x in self.m_unreads])
+        db_session.commit()
+
     def change_name(self, member_id, name):
         if not (1 <= member_id and member_id <= 12):
             return -1 # member_id error
@@ -52,6 +60,8 @@ class User(Base):
 
         self.m_names[member_id] = name
         self.member_names = '|'.join(self.m_names)
+        db_session.commit()
+        return 0
 
     def read_mail(self, id):
         mail = Mail.query.get(id)
@@ -65,7 +75,7 @@ class User(Base):
         self.reads.append(mail)
         self.m_unreads[mail.member_id] -= 1
         self.m_unreads[0] -= 1
-        self.member_unreads = '|'.join(self.m_unreads)
+        self.member_unreads = '|'.join([str(x) for x in self.m_unreads])
         db_session.commit()
         return 1 # Successfully processed
 
@@ -81,7 +91,7 @@ class User(Base):
         self.stars.append(mail)
         self.m_stars[mail.member_id] += 1
         self.m_stars[0] += 1 
-        self.member_stars = '|'.join(self.m_unreads)
+        self.member_stars = '|'.join([str(x) for x in self.m_stars])
         db_session.commit()
         return 1 # Successfully processed
 
@@ -97,7 +107,7 @@ class User(Base):
         self.stars.remove(mail)
         self.m_stars[mail.member_id] -= 1
         self.m_stars[0] -= 1
-        self.member_stars = '|'.join(self.m_unreads)
+        self.member_stars = '|'.join([str(x) for x in self.m_stars])
         db_session.commit()
         return 1 # Successfully processed
 
@@ -105,7 +115,6 @@ class User(Base):
         mail = Mail.query.get(id)
         if not mail:
             return False
-        
         return mail in self.reads
 
     def is_star(self, id):
