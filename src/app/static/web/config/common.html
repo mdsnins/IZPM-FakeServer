@@ -19,13 +19,13 @@
                 <div class="form-group row">
                     <label for="m1_nick" class="col-sm-8 col-form-label">조사 자동치환</label>
                     <div class="col-sm-4">
-                        <input type="checkbox"{{ "checked" if configs['ppos'] else ""}} data-toggle="toggle" class="config-toggle" id="ppos">
+                        <input type="checkbox"{{ "checked" if configs['ppos'] == "1" else ""}} data-toggle="toggle" class="config-toggle" id="ppos">
                     </div>
                 </div>
                 <div class="form-group row">
                     <label for="m1_nick" class="col-sm-8 col-form-label">파파고 번역 버튼 (미구현)</label>
                     <div class="col-sm-4">
-                        <input type="checkbox"{{ "checked" if configs['translate'] else ""}} data-toggle="toggle" class="config-toggle" id="translate">
+                        <input type="checkbox"{{ "checked" if configs['translate'] == "1" else ""}} data-toggle="toggle" class="config-toggle" id="translate">
                     </div>
                 </div>
             </div>
