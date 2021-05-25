@@ -3,7 +3,7 @@ pm.js
 config.py
 izpm.db
 uwsgi.ini
-web/mail
+mail
 
 ### Flask ###
 instance/*
