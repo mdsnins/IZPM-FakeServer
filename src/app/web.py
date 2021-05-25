@@ -50,7 +50,7 @@ def user_config(cid):
     if not user:
         return error(401, "AuthorizationError", "인증 오류")
 
-    if cid == "m_nick":
+    if cid == "member_name":
         m_nick = ['']
         for i in range(1, 13):
             c = user.get_config("m%d_nick" % i)
@@ -105,7 +105,7 @@ def user_register():
     
     pm_data = json.loads(request.files['pmfile'].read())
     user.mails = [] #Clear all mails first
-    for m in Mail.query.filter_by(member_id = 14).all():
+    for m in Mail.query.filter_by(member_id = 13).all():
         user.mails.append(m)
     db_session.commit()
     processed = 0
@@ -113,9 +113,9 @@ def user_register():
     mid = ""
     try:
         for pm in pm_data:
-            if pm["member"] == "운영팀":
-                continue
             mid = pm["id"]
+            if pm["member"] == "운영팀" or mid[0] == "b":
+                continue
             m = Mail.query.filter_by(mail_id = mid).one()
             if not m:
                 skipped.append(mid)
@@ -123,11 +123,13 @@ def user_register():
             user.mails.append(m)
             processed += 1
 
-        db_session.commit()
-        request.files['pmfile'].save("{}/{}.js".format(config.PMJS_PATH, uid))
     except Exception as e:
         print(e)
         return render_template("config/restore_register.html", err = "{} 처리 중 에러가 발생하였습니다.<br>{}".format(mid, e))
+
+    request.files['pmfile'].save("{}/{}.js".format(config.PMJS_PATH, uid))
+    db_session.commit()
+    user.clear_read()
 
     if len(skipped) > 0:
         return render_template("config/restore_register.html",
@@ -166,7 +168,11 @@ def new_config(key):
     v = request.form.get("value", "")
     c = u.get_config(key)
 
-    if request.method == "POST":    
+    if request.method == "POST": 
+        if key == "read_clear":
+            u.clear_read()
+            return generate_json({"code": 200, "msg": "success"})
+
         if c:
             c.value = v
             db_session.commit()
