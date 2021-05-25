@@ -125,6 +125,7 @@ def user_register():
 
     except Exception as e:
         print(e)
+        db_session.rollback()
         return render_template("config/restore_register.html", err = "{} 처리 중 에러가 발생하였습니다.<br>{}".format(mid, e))
 
     request.files['pmfile'].save("{}/{}.js".format(config.PMJS_PATH, uid))
@@ -181,9 +182,8 @@ def new_config(key):
         c = Config()
         c.key = key
         c.value = v
-        u.configs.append(c)
-
         db_session.add(c)
+        u.configs.append(c)
         db_session.commit()
         return generate_json({"code": 200, "msg": "success"})
     else:
