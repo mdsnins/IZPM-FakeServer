@@ -8,14 +8,14 @@ class User(Base):
     
     user_id = Column(String(32), primary_key = True)
     access_token = Column(String(32), unique = False)
-    nickname = Column(String(32), unique = False)
+    nickname = Column(String(96), unique = False)
     gender = Column(String(8), unique = False)
     country_code = Column(String(2), unique = False)
     prefecture_id = Column(Integer, unique = False)
     birthday = Column(String(8), unique = False)
     member_id = Column(Integer, unique = False)
 
-    member_names = Column(String(180), unique = False)
+    member_names = Column(String(480), unique = False)
     member_unreads = Column(String(84), unique = False)
     member_stars = Column(String(84), unique = False)
 
@@ -144,9 +144,9 @@ class Member(Base):
     __tablename__ = "MEMBER"
 
     id = Column(Integer, primary_key = True)
-    realname_ko = Column(String(12), unique = False)
-    realname_th = Column(String(12), unique = False)
-    realname_in = Column(String(12), unique = False)
+    realname_ko = Column(String(36), unique = False)
+    realname_th = Column(String(36), unique = False)
+    realname_in = Column(String(36), unique = False)
     image_url = Column(String(256), unique = False)
 
     mails = relationship("Mail", cascade="delete", backref="member")
@@ -163,9 +163,9 @@ class Mail(Base):
     __tablename__ = "MAIL"
 
     id = Column(Integer, primary_key = True)
-    mail_id = Column(String(8), unique = True)
-    subject = Column(String(80), unique = False)
-    preview = Column(String(80), unique = False)
+    mail_id = Column(String(32), unique = True)
+    subject = Column(String(240), unique = False)
+    preview = Column(String(240), unique = False)
     content = Column(Text, unique = False)
     
     member_id = Column(Integer, ForeignKey("MEMBER.id"))
@@ -180,8 +180,8 @@ class Image(Base):
     __tablename__ = "IMAGE"
 
     id = Column(Integer, primary_key = True)
-    image_url = Column(String, unique = False)
-    thumbnail_image_url = Column(String, unique = False)
+    image_url = Column(String(256), unique = False)
+    thumbnail_image_url = Column(String(256), unique = False)
 
     member_id = Column(Integer, ForeignKey("MEMBER.id"))
     mail_id = Column(Integer, ForeignKey("MAIL.id"))
@@ -191,7 +191,7 @@ class Config(Base):
     id = Column(Integer, primary_key = True)
     user_id = Column(String(16), ForeignKey("USER.user_id"))
     key = Column(String(32), unique = False)
-    value = Column(String, unique = False)
+    value = Column(String(96), unique = False)
 
 # Association Tables
 class MailSubscribes(Base):
