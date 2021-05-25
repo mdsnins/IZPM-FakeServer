@@ -1,6 +1,6 @@
 import datetime
 from flask import Flask, render_template, request, url_for, redirect, Blueprint, send_from_directory
-from sqlalchemy import desc
+from sqlalchemy import desc, or_, and_
 from . import config
 from .model import *
 from .database import db_session
@@ -20,7 +20,7 @@ def get_user():
     u.m_names = ['']
     for i in range(1, 13):
         u.m_names.append(t[i] if t[i] != '' else members[i].realname_ko)
-    u.m_names.append("평행우주 프로젝트")
+    #u.m_names.append("평행우주 프로젝트")
     u.m_names.append("설정")
     
     u.m_unreads = [int(x) for x in u.member_unreads.split('|')] # Explode from string value
@@ -53,7 +53,7 @@ def generate_mails(mails):
         ppos = user.get_config("ppos")
         ppos = ppos.value if ppos else "0"
 
-        content = resolve_name(mail.content, user.get_nickname(member["id"]), ppos == "1")
+        content = resolve_name(mail.preview, user.get_nickname(member["id"]), ppos == "1")
         t = {
             "member": member,
             "group": {"id":3, "name": "IZ*ONE"},
@@ -146,7 +146,7 @@ def users():
         u = User()
         u.user_id = random_alphanumeric(12)
         u.access_token = random_alphanumeric(24)
-        for m in Mail.query.filter_by(member_id = 14).all():
+        for m in Mail.query.filter_by(member_id = 13).all():
             u.mails.append(m)
         db_session.add(u)
         db_session.commit()
@@ -186,6 +186,7 @@ def inbox():
     #drop group_id; not used in IZ*ONE PM
     is_star = request.args.get("is_star", "0")
     is_unread = request.args.get("is_unread", "0")
+    q = request.args.get("q", "")
     member_id = request.args.get("member_id", "0") # 0 for everyone
     user = get_user()
     page = request.args.get("page", "0")
@@ -198,7 +199,7 @@ def inbox():
         page = 1
     try:
         member_id = int(member_id)
-        if member_id < 0 or 14 < member_id:
+        if member_id < 0 or 13 < member_id:
             member_id = 0
     except ValueError:
         member_id = 0
@@ -206,14 +207,27 @@ def inbox():
     mails = []
     
     if member_id == 0:
-        mails = user.mails.filter(Mail.member_id < 13).order_by(desc(Mail.datetime)).all()
+        if q != "":
+            mails = user.mails.filter(and_(Mail.member_id < 13, or_(
+                Mail.subject.contains(q),
+                Mail.content.contains(q)
+            ))).all()
+        else:
+            mails = user.mails.filter(Mail.member_id < 13).all()
     else:
-        mails = user.mails.filter_by(member_id = member_id).all()
+        if q != "":
+            mails = user.mails.filter(and_(Mail.member_id == member_id, or_(
+                Mail.subject.contains(q),
+                Mail.content.contains(q)
+            ))).all()
+        else:
+            mails = user.mails.filter(Mail.member_id == member_id).all()
     
     if is_star != "0" and is_star != "false":
         mails = [m for m in mails if user.is_star(m.id)]
     if is_unread != "0" and is_star != "false":
         mails = [m for m in mails if not user.is_read(m.id)]
+
     
     total = len(mails)
     mails = mails[(page - 1)*20:page*20]
@@ -239,7 +253,7 @@ def inbox_ignore(cid):
     if "mails" in member:
         member.pop("mails", None)
     
-    content = mail.content
+    content = mail.preview
     t = {
         "member": member,
         "group": {"id":3, "name": "IZ*ONE"},
@@ -282,7 +296,7 @@ def inbox_read(mid):
     if "mails" in member:
         member.pop("mails", None)
     
-    content = resolve_name(mail.content, user.get_nickname(member["id"]))
+    content = resolve_name(mail.preview, user.get_nickname(member["id"]))
     t = {
         "member": member,
         "group": {"id":3, "name": "IZ*ONE"},
@@ -359,14 +373,6 @@ def menu():
                     {
                         "member": {
                             "id": 13,
-                            "name": "평행우주 프로젝트",
-                            "image_url": "https://wizone.s3.ap-northeast-2.amazonaws.com/izpm/profile/pu.jpg"
-                        },
-                        "unread_count": 0
-                    },
-                    {
-                        "member": {
-                            "id": 14,
                             "name": "설정",
                             "image_url": "https://wizone.s3.ap-northeast-2.amazonaws.com/izpm/profile/settings.png"
                         },

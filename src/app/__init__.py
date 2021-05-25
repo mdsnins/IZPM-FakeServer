@@ -37,22 +37,23 @@ def init_db():
     database.db_session.add(model.Member(11, "김민주", "KIM MIN JU", config.IMAGE_PREFIX + "/11.jpg"))
     database.db_session.add(model.Member(12, "이채연", "LEE CHAE YEON", config.IMAGE_PREFIX + "/12.jpg"))
 
-    database.db_session.add(model.Member(13, "평행우주 프로젝트", "IZ PU PROJECT", config.IMAGE_PREFIX + "/pu.jpg"))
-    database.db_session.add(model.Member(14, "설정", "SETTINGS", config.IMAGE_PREFIX + "/settings.png"))
+    #database.db_session.add(model.Member(13, "평행우주 프로젝트", "IZ PU PROJECT", config.IMAGE_PREFIX + "/pu.jpg"))
+    database.db_session.add(model.Member(13, "설정", "SETTINGS", config.IMAGE_PREFIX + "/settings.png"))
 
     database.db_session.commit()
     
-    pu = model.Member.query.all()[13]
-    settings = model.Member.query.all()[14]
+    #pu = model.Member.query.all()[13]
+    settings = model.Member.query.all()[13]
 
     m = model.Mail()
     m.mail_id = "config/member_name"
     m.subject = "멤버별 닉네임 설정"
+    m.preview = "멤버별 수신 별명 설정은 여기서 해주세요."
     m.content = "멤버별 수신 별명 설정은 여기서 해주세요."
     m.time = datetime.datetime.strptime("2018/10/29 00:00", "%Y/%m/%d %H:%M")
     m.datetime = datetime.datetime.strptime("2018/10/29 00:00", "%Y/%m/%d %H:%M")
     m.is_image = False
-    m.member_id = 14
+    m.member_id = 13
 
     settings.mails.append(m)
     database.db_session.add(m)
@@ -61,11 +62,12 @@ def init_db():
     m = model.Mail()
     m.mail_id = "config/common"
     m.subject = "일반 설정"
+    m.preview = "조사 자동 변경, 번역 버튼 활성화 등의 설정"
     m.content = "조사 자동 변경, 번역 버튼 활성화 등의 설정"
     m.time = datetime.datetime.strptime("2018/10/29 00:00", "%Y/%m/%d %H:%M")
     m.datetime = datetime.datetime.strptime("2018/10/29 00:00", "%Y/%m/%d %H:%M")
     m.is_image = False
-    m.member_id = 14
+    m.member_id = 13
 
     settings.mails.append(m)
     database.db_session.add(m)
@@ -74,11 +76,12 @@ def init_db():
     m = model.Mail()
     m.mail_id = "config/restore"
     m.subject = "백업 불러오기"
+    m.preview = "서비스 이용을 위해 pm.json을 등록해주세요."
     m.content = "서비스 이용을 위해 pm.json을 등록해주세요."
     m.time = datetime.datetime.strptime("2018/10/29 00:00", "%Y/%m/%d %H:%M")
     m.datetime = datetime.datetime.strptime("2018/10/29 00:00", "%Y/%m/%d %H:%M")
     m.is_image = False
-    m.member_id = 14
+    m.member_id = 13
 
     settings.mails.append(m)
     database.db_session.add(m)
@@ -98,7 +101,8 @@ def load_pm(pm_data):
         m = model.Mail()
         m.mail_id = mail["id"]
         m.subject = mail["subject"]
-        m.content = mail["preview"][:80]
+        m.preview = mail["preview"][:80]
+        m.content = mail["body"]
         m.time = datetime.datetime.strptime(mail["time"], "%Y/%m/%d %H:%M")
         m.datetime = datetime.datetime.strptime(mail["time"], "%Y/%m/%d %H:%M")
         m.is_image = mail["image"]
@@ -108,7 +112,6 @@ def load_pm(pm_data):
          
         database.db_session.add(m)
     database.db_session.commit()
-        
 
 def test_db():
     u = model.User()
@@ -122,6 +125,13 @@ def test_db():
     u.member_id = 1
 
     database.db_session.add(u)
+    database.db_session.commit()
+
+def all_pm(user):
+    user.mails = []
+    for m in model.Mail.query.all():
+        user.mails.append(m)
+    user.clear_read()
     database.db_session.commit()
 
 def init():

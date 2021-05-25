@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, desc
+from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, desc
 from sqlalchemy.orm import relationship, backref
 
 from .database import Base, db_session
@@ -22,6 +22,7 @@ class User(Base):
     mails = relationship('Mail', secondary = "MAIL_AVAIL", lazy = "dynamic")  # User readable mails
     reads = relationship('Mail', secondary = "MAIL_READ")
     stars = relationship('Mail', secondary = "MAIL_STAR")
+    favorites = relationship('Image', secondary = "IMAGE_FAVORITE", lazy = "dynamic") # User favorite images
     
     configs = relationship("Config", cascade="delete", backref="user")
     
@@ -47,6 +48,10 @@ class User(Base):
     def clear_read(self):
         self.m_unreads = [0] * 13
         for mail in self.mails:
+            if mail.member_id > 12:
+                continue
+            if mail in self.reads:
+                continue
             self.m_unreads[mail.member_id] += 1
             self.m_unreads[0] += 1
         self.member_unreads = '|'.join([str(x) for x in self.m_unreads])
@@ -145,6 +150,7 @@ class Member(Base):
     image_url = Column(String(256), unique = False)
 
     mails = relationship("Mail", cascade="delete", backref="member")
+    images = relationship("Image", backref="member")
 
     def __init__(self, id, name, name_global, image_url):
         self.id = id
@@ -159,13 +165,26 @@ class Mail(Base):
     id = Column(Integer, primary_key = True)
     mail_id = Column(String(8), unique = True)
     subject = Column(String(80), unique = False)
-    content = Column(String(80), unique = False)
+    preview = Column(String(80), unique = False)
+    content = Column(Text, unique = False)
     
     member_id = Column(Integer, ForeignKey("MEMBER.id"))
+
+    images = relationship("Image", backref="mail")
 
     time = Column(DateTime, unique = False)
     datetime = Column(DateTime, unique = False)
     is_image = Column(Boolean, unique = False)
+
+class Image(Base):
+    __tablename__ = "IMAGE"
+
+    id = Column(Integer, primary_key = True)
+    image_url = Column(String, unique = False)
+    thumbnail_image_url = Column(String, unique = False)
+
+    member_id = Column(Integer, ForeignKey("MEMBER.id"))
+    mail_id = Column(Integer, ForeignKey("MAIL.id"))
 
 class Config(Base):
     __tablename__ = "CONFIG"
@@ -192,3 +211,10 @@ class MailStars(Base):
     id = Column(Integer, primary_key = True)
     uid = Column(String(32), ForeignKey("USER.user_id"))
     mid = Column(Integer, ForeignKey("MAIL.id"))
+
+class ImageFavorites(Base):
+    __tablename__ = "IMAGE_FAVORITE"
+    id = Column(Integer, primary_key = True)
+    uid = Column(String(32), ForeignKey("USER.user_id"))
+    iid = Column(Integer, ForeignKey("IMAGE.id"))
+
