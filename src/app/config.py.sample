@@ -1,4 +1,14 @@
-SQLITE_DB = "sqlite:///izpm.db"
+#SQLITE_DB = "sqlite:///izpm.db"
+MYSQL_CONFIG = {
+    'user': 'user',
+    'password': 'password',
+    'host': 'localhost',
+    'port': 3306,
+    'database': 'izpm'
+}
+MYSQL_DB = "mysql+mysqlconnector://{}:{}@{}:{}/{}?charset=utf8mb4".format(MYSQL_CONFIG["user"], MYSQL_CONFIG["password"],
+                                                        MYSQL_CONFIG["host"], MYSQL_CONFIG["port"], MYSQL_CONFIG["database"])
+
 
 SERVER_NAME = "izone-mail.com"
 
