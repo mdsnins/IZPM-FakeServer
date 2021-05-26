@@ -98,13 +98,13 @@ def user_register():
 
     user = get_user(user_id = uid, access_token = at)
     if not user:
-        return render_template("config/restore_register.html", err = "올바르지 않은 계정입니다.")
-
+        return render_template("config/restore_register.html", err = "올바르지 않은 계정 혹은 이미 진행중인 계정입니다.")
     if request.method == "GET":
         return render_template("config/restore_register.html", nick = user.nickname, token = token)
-    
+
     pm_data = json.loads(request.files['pmfile'].read())
     user.mails = []
+    user.access_token = "!" + user.access_token #Lock the user session
     db_session.commit()
     
     for m in Mail.query.filter_by(member_id = 13).all():
@@ -114,6 +114,7 @@ def user_register():
     db_session.commit()
     processed = 0
     skipped = []
+    done = dict()
     mid = ""
     try:
         for pm in pm_data:
@@ -124,14 +125,21 @@ def user_register():
             if not m:
                 skipped.append(mid)
                 continue
+            if mid in done:
+                continue
             user.mails.append(m)
-            db_session.commit()
+            done[mid] = True
             processed += 1
 
     except Exception as e:
-        print(e)
+        db_session.rollback()
+        user.access_token = user.access_token[1:] #Release lock
         return render_template("config/restore_register.html", err = "{} 처리 중 에러가 발생하였습니다.<br>{}".format(mid, e))
-
+    
+    db_session.commit()
+    user.access_token = user.access_token[1:] #Release lock
+            
+            
     request.files['pmfile'].save("{}/{}.js".format(config.PMJS_PATH, uid))
     user.clear_read()
 
@@ -171,6 +179,9 @@ def new_config(key):
         return error(401, "AuthorizationError", "인증 오류")
     v = request.form.get("value", "")
     c = u.get_config(key)
+
+    if len(v) > 32:
+        return generate_json({"code": -1, "msg": "too long"})
 
     if request.method == "POST": 
         if key == "read_clear":
