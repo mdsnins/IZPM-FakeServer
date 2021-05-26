@@ -2,7 +2,11 @@ import json
 import re
 import random
 from functools import wraps
+from datetime import datetime, timedelta
 from .model import *
+
+single_date = re.compile("([0-9]{8})(.*)?")
+double_date = re.compile("([0-9]{8})\-([0-9]{8})(.*)?")
 
 def error(code, name, message, id = "#B-0000-0000"):
     return json.dumps({
@@ -52,4 +56,36 @@ def resolve_name(body, name, postposition = False):
             body = body[:i] + name + body[i+5:]
 
     return re.sub('\<(($)|위)즈?원?(>|$)', name, body) #Process rest
+
+def parse_search_query(q):
+    if q == "":
+        return {}
     
+    res = {}
+    if q[0] == "!":
+        res["reverse"] = True
+        q = q[1:]
+
+    try:
+        t = double_date.match(q)
+        if t != None:
+           res.update({
+               "begin": datetime.strptime(t.groups()[0], "%Y%m%d"),
+               "end": datetime.strptime(t.groups()[1], "%Y%m%d") + timedelta(days = 1),
+               "q": t.groups()[2].strip() if len(t.groups()) == 3 else ""
+           })
+        else:
+            t = single_date.match(q)
+            if t != None:
+                res.update({
+                    "begin": datetime.strptime(t.groups()[0], "%Y%m%d"),
+                    "end": datetime.strptime(t.groups()[0], "%Y%m%d") + timedelta(days = 1),
+                    "q": t.groups()[1].strip() if len(t.groups()) == 2 else ""
+                })
+            else:
+                res["q"] = q
+    except Exception as e:
+        res["q"] = q
+    finally:
+        return res
+        

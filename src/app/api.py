@@ -93,7 +93,7 @@ def users():
             # PATCH data validation
             try:
                 if bday != "":
-                    datetime.datetime.strptime(bday, "%Y%m%d") #try parse as datetime
+                    datetime.strptime(bday, "%Y%m%d") #try parse as datetime
                 if ccode != "":
                     if ccode == "JP":
                         pfid = int(pfid)
@@ -112,7 +112,7 @@ def users():
                 if len(nickname) > 32:
                     return error(403, "ValueError", "값 오류")
             except Exception as e:
-                return error(403, "ValueError")
+                return error(403, "ValueError", "값 오류")
             
             # data update
             if bday != "" and user.birthday == "": # Birthday shouldn't be able to be updated
@@ -174,10 +174,9 @@ def android_inherit():
     nickname = request.form.get("user_id", "위즈원")
     bday = request.form.get("password", "")
     
-    # PATCH data validation
     try:
         if bday != "":
-            datetime.datetime.strptime(bday, "%Y%m%d") #try parse as datetime
+            datetime.strptime(bday, "%Y%m%d") #try parse as datetime
         if ccode != "":
             if ccode == "JP":
                 pfid = int(pfid)
@@ -196,7 +195,8 @@ def android_inherit():
         if len(nickname) > 32:
             return error(403, "ValueError", "값 오류")
     except Exception as e:
-        return error(403, "ValueError")
+        print(e)
+        return error(403, "ValueError", "값 오류")
     
     # data update
     if bday != "" and user.birthday == "": # Birthday shouldn't be able to be updated
@@ -272,22 +272,32 @@ def inbox():
 
     mails = []
     
+
+    # Search
+
+    query = user.mails
+    search_query = parse_search_query(q)
+
     if member_id == 0:
-        if q != "":
-            mails = user.mails.filter(and_(Mail.member_id < 13, or_(
-                Mail.subject.contains(q),
-                Mail.content.contains(q)
-            ))).all()
-        else:
-            mails = user.mails.filter(Mail.member_id < 13).all()
+        query = query.filter(Mail.member_id < 13)
     else:
-        if q != "":
-            mails = user.mails.filter(and_(Mail.member_id == member_id, or_(
-                Mail.subject.contains(q),
-                Mail.content.contains(q)
-            ))).all()
-        else:
-            mails = user.mails.filter(Mail.member_id == member_id).all()
+        query = query.filter(Mail.member_id == member_id)
+    
+    if "begin" in search_query:
+        query = query.filter(Mail.datetime >= search_query["begin"])
+    if "end" in search_query:
+        query = query.filter(Mail.datetime <= search_query["end"])
+
+    if "q" in search_query:
+        query = query.filter(or_(
+                    Mail.subject.contains(search_query["q"]),
+                    Mail.content.contains(search_query["q"])
+                ))
+    
+    if "reverse" in search_query and search_query["reverse"] == True:
+        query = query.order_by(Mail.id.desc())
+
+    mails = query.all()
     
     if is_star != "0" and is_star != "false":
         mails = [m for m in mails if user.is_star(m.id)]
