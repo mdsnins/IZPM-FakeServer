@@ -160,6 +160,72 @@ def users():
     else:
         return error(405, "RequestError", "요청 오류")
 
+@router.route("/data_inherit_execute", methods = ["POST"])
+def android_inherit():
+    user = get_user()
+    if not user:
+        return error(401, "AuthorizationError", "인증 오류")
+
+    ccode = request.form.get("country_code", "KR")
+    pfid = request.form.get("prefecture_id", "-1")
+    gender = request.form.get("gender", "male")
+    member_id = request.form.get("member_id", "1")
+    
+    nickname = request.form.get("user_id", "위즈원")
+    bday = request.form.get("password", "")
+    
+    # PATCH data validation
+    try:
+        if bday != "":
+            datetime.datetime.strptime(bday, "%Y%m%d") #try parse as datetime
+        if ccode != "":
+            if ccode == "JP":
+                pfid = int(pfid)
+                if pfid < 1 or pfid > 47:
+                    return error(403, "ValueError", "값 오류")
+            elif ccode in ["KR", "TH", "IN"]:
+                pfid = -1
+            else:
+                return error(403, "ValueError", "값 오류")
+        if gender != "" and not gender in ["male", "female"]:
+            return error(403, "ValueError", "값 오류")
+        if member_id != "":
+            t = int(member_id)
+            if t < 1 or t > 12:
+                return error(403, "ValueError", "값 오류")
+        if len(nickname) > 32:
+            return error(403, "ValueError", "값 오류")
+    except Exception as e:
+        return error(403, "ValueError")
+    
+    # data update
+    if bday != "" and user.birthday == "": # Birthday shouldn't be able to be updated
+        user.birthday = bday 
+    if ccode != "":
+        user.country_code = ccode
+        user.prefecture_id = pfid
+    if gender != "":
+        user.gender = gender
+    if member_id != "":
+        user.member_id = member_id
+    if nickname != "":
+        user.nickname = nickname
+    
+    db_session.commit()
+
+    return generate_json({
+        "user": {
+            "id": user.user_id,
+            "access_token": user.access_token,
+            "nickname": user.nickname,
+            "gender": user.gender,
+            "country_code": user.country_code,
+            "prefecture_id": user.prefecture_id,
+            "birthday": user.birthday,
+            "member_id": user.member_id
+        }
+    })
+
 @router.route("/application_settings", methods = ["GET", "PATCH"])
 def application_settings():
     return generate_json({
@@ -281,7 +347,7 @@ def inbox_read(mid):
         return error(401, "MailError", "접근 오류")
 
     tp = request.form.get("type", "")
-    if tp == "is_already_read":
+    if tp == "is_already_read" and mail.member_id <= 12:
         user.read_mail(mail.id)
     elif tp == "is_star":
         if request.form.get("value", "0") == "1":
