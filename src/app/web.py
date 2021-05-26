@@ -104,9 +104,13 @@ def user_register():
         return render_template("config/restore_register.html", nick = user.nickname, token = token)
     
     pm_data = json.loads(request.files['pmfile'].read())
-    user.mails = [] #Clear all mails first
+    user.mails = []
+    db_session.commit()
+    
     for m in Mail.query.filter_by(member_id = 13).all():
         user.mails.append(m)
+        db_session.commit()
+
     db_session.commit()
     processed = 0
     skipped = []
@@ -121,15 +125,14 @@ def user_register():
                 skipped.append(mid)
                 continue
             user.mails.append(m)
+            db_session.commit()
             processed += 1
 
     except Exception as e:
         print(e)
-        db_session.rollback()
         return render_template("config/restore_register.html", err = "{} 처리 중 에러가 발생하였습니다.<br>{}".format(mid, e))
 
     request.files['pmfile'].save("{}/{}.js".format(config.PMJS_PATH, uid))
-    db_session.commit()
     user.clear_read()
 
     if len(skipped) > 0:
