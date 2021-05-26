@@ -143,7 +143,7 @@ class User(Base):
 class Member(Base):
     __tablename__ = "MEMBER"
 
-    id = Column(Integer, primary_key = True)
+    id = Column(Integer, primary_key = True, autoincrement=True)
     realname_ko = Column(String(36), unique = False)
     realname_th = Column(String(36), unique = False)
     realname_in = Column(String(36), unique = False)
@@ -162,7 +162,7 @@ class Member(Base):
 class Mail(Base):
     __tablename__ = "MAIL"
 
-    id = Column(Integer, primary_key = True)
+    id = Column(Integer, primary_key = True, autoincrement=True)
     mail_id = Column(String(32), unique = True)
     subject = Column(String(240), unique = False)
     preview = Column(String(240), unique = False)
@@ -179,7 +179,7 @@ class Mail(Base):
 class Image(Base):
     __tablename__ = "IMAGE"
 
-    id = Column(Integer, primary_key = True)
+    id = Column(Integer, primary_key = True, autoincrement=True)
     image_url = Column(String(256), unique = False)
     thumbnail_image_url = Column(String(256), unique = False)
 
@@ -188,7 +188,7 @@ class Image(Base):
 
 class Config(Base):
     __tablename__ = "CONFIG"
-    id = Column(Integer, primary_key = True)
+    id = Column(Integer, primary_key = True, autoincrement=True)
     user_id = Column(String(16), ForeignKey("USER.user_id"))
     key = Column(String(32), unique = False)
     value = Column(String(96), unique = False)
@@ -196,25 +196,25 @@ class Config(Base):
 # Association Tables
 class MailSubscribes(Base):
     __tablename__ = "MAIL_AVAIL"
-    id = Column(Integer, primary_key = True)
+    id = Column(Integer, primary_key = True, autoincrement=True)
     uid = Column(String(32), ForeignKey("USER.user_id"))
     mid = Column(Integer, ForeignKey("MAIL.id"))
 
 class MailReads(Base):
     __tablename__ = "MAIL_READ"
-    id = Column(Integer, primary_key = True)
+    id = Column(Integer, primary_key = True, autoincrement=True)
     uid = Column(String(32), ForeignKey("USER.user_id"))
     mid = Column(Integer, ForeignKey("MAIL.id"))
 
 class MailStars(Base):
     __tablename__ = "MAIL_STAR"
-    id = Column(Integer, primary_key = True)
+    id = Column(Integer, primary_key = True, autoincrement=True)
     uid = Column(String(32), ForeignKey("USER.user_id"))
     mid = Column(Integer, ForeignKey("MAIL.id"))
 
 class ImageFavorites(Base):
     __tablename__ = "IMAGE_FAVORITE"
-    id = Column(Integer, primary_key = True)
+    id = Column(Integer, primary_key = True, autoincrement=True)
     uid = Column(String(32), ForeignKey("USER.user_id"))
     iid = Column(Integer, ForeignKey("IMAGE.id"))
 
