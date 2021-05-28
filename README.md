@@ -62,3 +62,23 @@ Since retail iOS IZPM application restrict WKWebView's domain using `decidePolic
 ```
 
 To remove a restriction of WKWebView, please replace all of five hex values to `1F 20 03 D5` which is the opcode of **NOP**
+
+
+### Android smali patch
+
+There is a crash while processing a mail which doesn't have an integer in mail id (such as `config/*` in this project), a simple touch is required to handle this.
+
+**com.camobile.akb48mail.f.d**
+```smali
+
+ method public static final c(Ljava/lang/String;)I
+     .locals 2
+     const-string v0, "$this$parseMailIdToInt"
+     invoke-static {p0, v0}, Lf/y/d/k;->c(Ljava/lang/Object;Ljava/lang/String;)V
+     new-instance v0, Lf/e0/h;
+     const-string v1, "[^0-9]"
+     invoke-direct {v0, v1}, Lf/e0/h;-><init>(Ljava/lang/String;)V
+     const-string v1, "0"  #Edit this line from const-string v1, ""
+```
+
+Edit the line 7 of static function `c`, from `const-string v1, ""` to `const-string v1, "0"`
