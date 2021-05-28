@@ -24,4 +24,6 @@ PROFILE_PREFIX  = IMG_HOST + "/artist/profile/starship/202010211113"
 IMAGE_PREFIX    = IMG_HOST = "/image"
 DETAIL_PREFIX   = WEB_HOST + "/mail"
 
+NO_IMAGE = IMG_HOST + "/images/no_image.jpeg"
+
 CRYPTO_KEY = b"SAMPLE16BYTESKEY"
