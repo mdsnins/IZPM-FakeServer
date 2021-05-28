@@ -14,6 +14,11 @@ if __name__ == "__main__":
         raw = f.read()[14:]
         f.close()
         load_pm(json.loads(raw))
+    elif argv[1] == "loadimg":
+        f = open("image_db.json", "r")
+        raw = f.read()
+        f.close()
+        load_img(json.loads(raw))
     elif argv[1] == "debug":
         import code
         code.interact(local=locals())

@@ -116,6 +116,32 @@ class User(Base):
         db_session.commit()
         return 1 # Successfully processed
 
+    def star_image(self, id):
+        image = Image.query.get(id)
+        
+        if not image:
+            return -1 # Error
+
+        if image in self.favorites:
+            return 0 # Already starrerd
+
+        self.favorites.append(image)
+        db_session.commit()
+        return 1
+        
+    def unstar_image(self, id):
+        image = Image.query.get(id)
+        
+        if not image:
+            return -1 # Error
+
+        if image in self.favorites:
+            return 0 # Already starrerd
+
+        self.favorites.remove(image)
+        db_session.commit()
+        return 1
+
     def is_read(self, id):
         mail = Mail.query.get(id)
         if not mail:
@@ -127,6 +153,12 @@ class User(Base):
         if not mail:
             return False
         return mail in self.stars
+    
+    def is_favorite(self, id):
+        image = Image.query.get(id)
+        if not image:
+            return False
+        return image in self.favorites
 
     def get_config(self, key):
         for c in self.configs:
@@ -150,7 +182,7 @@ class Member(Base):
     image_url = Column(String(256), unique = False)
 
     mails = relationship("Mail", cascade="delete", backref="member")
-    images = relationship("Image", backref="member")
+    images = relationship("Image", backref="member", lazy="dynamic")
 
     def __init__(self, id, name, name_global, image_url):
         self.id = id
@@ -170,7 +202,7 @@ class Mail(Base):
     
     member_id = Column(Integer, ForeignKey("MEMBER.id"))
 
-    images = relationship("Image", backref="mail")
+    images = relationship("Image", backref="mail", lazy = "dynamic")
 
     time = Column(DateTime, unique = False)
     datetime = Column(DateTime, unique = False)
@@ -182,6 +214,7 @@ class Image(Base):
     id = Column(Integer, primary_key = True, autoincrement=True)
     image_url = Column(String(256), unique = False)
     thumbnail_image_url = Column(String(256), unique = False)
+    receive_datetime = Column(DateTime, unique = False)
 
     member_id = Column(Integer, ForeignKey("MEMBER.id"))
     mail_id = Column(Integer, ForeignKey("MAIL.id"))

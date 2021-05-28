@@ -24,21 +24,21 @@ def init_db():
     database.Base.metadata.create_all(bind = database.engine)
     
     database.db_session.add(model.Member(0, "", "", ""))
-    database.db_session.add(model.Member(1, "장원영", "JANG WON YOUNG", config.IMAGE_PREFIX + "/1.jpg"))
-    database.db_session.add(model.Member(2, "미야와키 사쿠라", "MIYAWAKI SAKURA", config.IMAGE_PREFIX + "/2.jpg"))
-    database.db_session.add(model.Member(3, "조유리", "JO YU RI", config.IMAGE_PREFIX + "/3.jpg"))
-    database.db_session.add(model.Member(4, "최예나", "CHOI YE NA", config.IMAGE_PREFIX + "/4.jpg"))
-    database.db_session.add(model.Member(5, "안유진", "AN YU JIN", config.IMAGE_PREFIX + "/5.jpg"))
-    database.db_session.add(model.Member(6, "야부키 나코", "YABUKI NAKO", config.IMAGE_PREFIX + "/6.jpg"))
-    database.db_session.add(model.Member(7, "권은비", "KWON EUN BI", config.IMAGE_PREFIX + "/7.jpg"))
-    database.db_session.add(model.Member(8, "강혜원", "KANG HYE WON", config.IMAGE_PREFIX + "/8.jpg"))
-    database.db_session.add(model.Member(9, "혼다 히토미", "HONDA HITOMI", config.IMAGE_PREFIX + "/9.jpg"))
-    database.db_session.add(model.Member(10, "김채원", "KIM CHAE WON", config.IMAGE_PREFIX + "/10.jpg"))
-    database.db_session.add(model.Member(11, "김민주", "KIM MIN JU", config.IMAGE_PREFIX + "/11.jpg"))
-    database.db_session.add(model.Member(12, "이채연", "LEE CHAE YEON", config.IMAGE_PREFIX + "/12.jpg"))
+    database.db_session.add(model.Member(1, "장원영", "JANG WON YOUNG", config.PROFILE_PREFIX + "/1.jpg"))
+    database.db_session.add(model.Member(2, "미야와키 사쿠라", "MIYAWAKI SAKURA", config.PROFILE_PREFIX + "/2.jpg"))
+    database.db_session.add(model.Member(3, "조유리", "JO YU RI", config.PROFILE_PREFIX + "/3.jpg"))
+    database.db_session.add(model.Member(4, "최예나", "CHOI YE NA", config.PROFILE_PREFIX + "/4.jpg"))
+    database.db_session.add(model.Member(5, "안유진", "AN YU JIN", config.PROFILE_PREFIX + "/5.jpg"))
+    database.db_session.add(model.Member(6, "야부키 나코", "YABUKI NAKO", config.PROFILE_PREFIX + "/6.jpg"))
+    database.db_session.add(model.Member(7, "권은비", "KWON EUN BI", config.PROFILE_PREFIX + "/7.jpg"))
+    database.db_session.add(model.Member(8, "강혜원", "KANG HYE WON", config.PROFILE_PREFIX + "/8.jpg"))
+    database.db_session.add(model.Member(9, "혼다 히토미", "HONDA HITOMI", config.PROFILE_PREFIX + "/9.jpg"))
+    database.db_session.add(model.Member(10, "김채원", "KIM CHAE WON", config.PROFILE_PREFIX + "/10.jpg"))
+    database.db_session.add(model.Member(11, "김민주", "KIM MIN JU", config.PROFILE_PREFIX + "/11.jpg"))
+    database.db_session.add(model.Member(12, "이채연", "LEE CHAE YEON", config.PROFILE_PREFIX + "/12.jpg"))
 
-    #database.db_session.add(model.Member(13, "평행우주 프로젝트", "IZ PU PROJECT", config.IMAGE_PREFIX + "/pu.jpg"))
-    database.db_session.add(model.Member(13, "설정", "SETTINGS", config.IMAGE_PREFIX + "/settings.png"))
+    #database.db_session.add(model.Member(13, "평행우주 프로젝트", "IZ PU PROJECT", config.PROFILE_PREFIX + "/pu.jpg"))
+    database.db_session.add(model.Member(13, "설정", "SETTINGS", config.PROFILE_PREFIX + "/settings.png"))
 
     database.db_session.commit()
     
@@ -112,6 +112,31 @@ def load_pm(pm_data):
          
         database.db_session.add(m)
     database.db_session.commit()
+
+def load_img(img_data):
+    members = model.Member.query.all()
+    for image in img_data:
+        i = model.Image()
+        
+        i.image_url = image["image_url"]
+        i.thumbnail_image_url = image["thumbnail_image_url"]
+        
+        m = model.Mail.query.filter(model.Mail.mail_id == image["mail_id"]).first()
+        if not m:
+            database.db_session.rollback()
+            print("?")
+            break
+        
+        i.mail_id = m.id
+        i.member_id = m.member_id
+        i.receive_datetime = m.time
+
+        m.images.append(i)
+        m.member.images.append(i)
+
+        database.db_session.add(i)
+    database.db_session.commit()
+
 
 def test_db():
     u = model.User()

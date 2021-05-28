@@ -20,7 +20,8 @@ API_HOST   = "http://{}.{}".format(API_SUBDOMAIN, SERVER_NAME)
 WEB_HOST   = "http://{}.{}".format(WEB_SUBDOMAIN, SERVER_NAME)
 IMG_HOST   = "http://{}.{}".format(IMG_SUBDOMAIN, SERVER_NAME)
 
-IMAGE_PREFIX  = IMG_HOST + "/artist/profile/starship/202010211113"
-DETAIL_PREFIX = WEB_HOST + "/mail"
+PROFILE_PREFIX  = IMG_HOST + "/artist/profile/starship/202010211113"
+IMAGE_PREFIX    = IMG_HOST = "/image"
+DETAIL_PREFIX   = WEB_HOST + "/mail"
 
 CRYPTO_KEY = b"SAMPLE16BYTESKEY"
