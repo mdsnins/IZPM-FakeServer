@@ -137,6 +137,7 @@ def user_register():
         return render_template("config/restore_register.html", err = "{} 처리 중 에러가 발생하였습니다.<br>{}".format(mid, e))
     
     db_session.commit()
+    user.resolve_images()
     user.access_token = user.access_token[1:] #Release lock
             
             

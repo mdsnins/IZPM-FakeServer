@@ -64,6 +64,9 @@ class User(Base):
 
     def resolve_images(self):
         self.m_images = [0] * 13
+        self.images = []
+        self.favorites = []
+        db_session.commit()
         for mail in self.mails:
             for image in mail.images:
                 if image.member_id > 12:

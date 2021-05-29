@@ -291,7 +291,7 @@ def member_album(member_id):
         "album": {
             "id": member_id,
             "type": "member",
-            "name": user.m_names[x[0]],
+            "name": user.m_names[member_id],
             "image_url": config.IMAGE_PREFIX + last.image_url,
             "thumbnail_image_url": config.IMAGE_PREFIX + last.thumbnail_image_url
         },
@@ -401,6 +401,8 @@ def favorite_album():
 @router.route("/all_photos")
 @require_auth
 def all_photo():
+    return error(403, "ValueError", "점검중!")
+
     user = get_user()
     all_image_query = user.images.order_by(Image.receive_datetime.desc())
     
@@ -432,7 +434,7 @@ def all_photo():
     for image in images:
         jp_dt = datetojp(image.receive_datetime)
         if not jp_dt in t:
-            if dates >= 4:
+            if dates >= 3:
                 obj["has_next_page"] = True
                 break
             obj["last_date"] = (image.receive_datetime - timedelta(days = 1)).strftime("%Y-%m-%d")
