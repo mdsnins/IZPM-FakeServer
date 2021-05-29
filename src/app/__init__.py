@@ -137,7 +137,6 @@ def load_img(img_data):
         database.db_session.add(i)
     database.db_session.commit()
 
-
 def test_db():
     u = model.User()
     u.user_id = "AAAABBBBCCCCDDDD"

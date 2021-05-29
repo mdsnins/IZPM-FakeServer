@@ -18,8 +18,11 @@ class User(Base):
     member_names = Column(String(480), unique = False)
     member_unreads = Column(String(84), unique = False)
     member_stars = Column(String(84), unique = False)
+    member_images = Column(String(84), unique = False)
 
     mails = relationship('Mail', secondary = "MAIL_AVAIL", lazy = "dynamic")  # User readable mails
+    images = relationship('Image', secondary = "IMAGE_AVAIL", lazy = "dynamic") # User viewable images
+
     reads = relationship('Mail', secondary = "MAIL_READ")
     stars = relationship('Mail', secondary = "MAIL_STAR")
     favorites = relationship('Image', secondary = "IMAGE_FAVORITE", lazy = "dynamic") # User favorite images
@@ -29,6 +32,7 @@ class User(Base):
     m_names = []
     m_unreads = []
     m_stars = []
+    m_images = []
 
     def __init__(self):
         self.all_unread_count = 0
@@ -44,6 +48,7 @@ class User(Base):
         self.member_names = "-||||||||||||"
         self.member_unreads = "0|0|0|0|0|0|0|0|0|0|0|0|0"  # First column is for total
         self.member_stars = "0|0|0|0|0|0|0|0|0|0|0|0|0" # First column is for total
+        self.member_images ="-|0|0|0|0|0|0|0|0|0|0|0|0"
 
     def clear_read(self):
         self.m_unreads = [0] * 13
@@ -55,6 +60,17 @@ class User(Base):
             self.m_unreads[mail.member_id] += 1
             self.m_unreads[0] += 1
         self.member_unreads = '|'.join([str(x) for x in self.m_unreads])
+        db_session.commit()
+
+    def resolve_images(self):
+        self.m_images = [0] * 13
+        for mail in self.mails:
+            for image in mail.images:
+                if image.member_id > 12:
+                    continue
+                self.m_images[mail.member_id] += 1
+                self.images.append(image)
+        self.member_images = '|'.join([str(x) for x in self.m_images])
         db_session.commit()
 
     def change_name(self, member_id, name):
@@ -154,8 +170,7 @@ class User(Base):
             return False
         return mail in self.stars
     
-    def is_favorite(self, id):
-        image = Image.query.get(id)
+    def is_favorite(self, image):
         if not image:
             return False
         return image in self.favorites
@@ -233,6 +248,12 @@ class MailSubscribes(Base):
     uid = Column(String(32), ForeignKey("USER.user_id"))
     mid = Column(Integer, ForeignKey("MAIL.id"))
 
+class ImageSubscribes(Base):
+    __tablename__ = "IMAGE_AVAIL"
+    id = Column(Integer, primary_key = True, autoincrement=True)
+    uid = Column(String(32), ForeignKey("USER.user_id"))
+    iid = Column(Integer, ForeignKey("IMAGE.id"))
+
 class MailReads(Base):
     __tablename__ = "MAIL_READ"
     id = Column(Integer, primary_key = True, autoincrement=True)
@@ -250,4 +271,5 @@ class ImageFavorites(Base):
     id = Column(Integer, primary_key = True, autoincrement=True)
     uid = Column(String(32), ForeignKey("USER.user_id"))
     iid = Column(Integer, ForeignKey("IMAGE.id"))
+
 

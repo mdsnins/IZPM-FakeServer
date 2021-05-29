@@ -25,7 +25,11 @@ def get_user():
     
     u.m_unreads = [int(x) for x in u.member_unreads.split('|')] # Explode from string value
     u.m_stars   = [int(x) for x in u.member_stars.split('|')]
-    
+    try:
+        u.m_images  = [int(x) for x in u.member_images.split('|')]
+    except:
+        u.m_images = [0] * 13
+
     return u
 
 # auth require decorator
@@ -226,6 +230,250 @@ def android_inherit():
         }
     })
 
+
+# Photo Album features
+@router.route("/albums")
+@require_auth
+def albums():
+    user = get_user()
+    fav = get_image_preview(user.favorites.first())
+    mems = [(i, get_image_preview(user.images.filter_by(member_id = i).order_by(Image.receive_datetime.desc()).first())) for i in MEMBER_INDEX if user.m_images[i] > 0]
+    return generate_json({
+        "my_albums": [
+            {
+                "album": {
+                    "id": 0,
+                    "type": "favorite",
+                    "name": "즐겨찾기",
+                    "image_url": fav[0],
+                    "thumbnail_image_url": fav[1],
+                },
+                "image_count": user.favorites.count()
+            }
+        ],
+        "member_albums": [
+            {
+                "album": {
+                    "id": x[0],
+                    "type": "member",
+                    "name": user.m_names[x[0]],
+                    "image_url": x[1][0],
+                    "thumbnail_image_url": x[1][1]
+                },
+                "image_count": user.m_images[x[0]]
+            } for x in mems
+        ]
+    })
+
+@router.route("/albums/member/<int:member_id>")
+@require_auth
+def member_album(member_id):
+    user = get_user()
+    if member_id < 1 or member_id > 12 :
+        return error(403, "ValueError", "값 오류")
+    
+    member_img_query = user.images.filter_by(member_id = member_id).order_by(Image.receive_datetime.desc())
+    
+    last = member_img_query.first()
+    first = member_img_query.order_by(Image.receive_datetime.asc()).first()
+
+    last_date = request.args.get("last_date", "")
+    if last_date != "":
+        try:
+            last_date = datetime.strptime(last_date, "%Y-%m-%d")
+        except:
+            return error(403, "ValueError", "값 오류")
+    else:
+        last_date = last.receive_datetime
+    
+    #Build skeleton
+    obj = {
+        "album": {
+            "id": member_id,
+            "type": "member",
+            "name": user.m_names[x[0]],
+            "image_url": config.IMAGE_PREFIX + last.image_url,
+            "thumbnail_image_url": config.IMAGE_PREFIX + last.thumbnail_image_url
+        },
+        "last_date": "",
+        "has_next_page": False,
+        "start_date": datetojp(first.receive_datetime),
+        "end_date": datetojp(last.receive_datetime),
+        "all_photos": []
+    }
+
+    images = member_img_query.filter(Image.receive_datetime <= last_date)
+
+    dates = 0
+    t = dict()
+    for image in images:
+        jp_dt = datetojp(image.receive_datetime)
+        if not jp_dt in t:
+            if dates >= 4:
+                obj["has_next_page"] = True
+                break
+            obj["last_date"] = (image.receive_datetime - timedelta(days = 1)).strftime("%Y-%m-%d")
+            t[jp_dt] = []
+            dates += 1
+        t[jp_dt].append({
+            "id": str(image.id),
+            "image_url": config.IMAGE_PREFIX + image.image_url,
+            "thumbnail_image_url": config.IMAGE_PREFIX + image.image_url,
+            "mail_id": image.mail.mail_id,
+            "is_favorite": user.is_favorite(image),
+        })
+    
+    for date in t:
+        obj["all_photos"].append(
+            {
+                "receive_date": date,
+                "photos": t[date]
+            }
+        )
+
+    return generate_json(obj)
+
+@router.route("/albums/favorite/0")
+@require_auth
+def favorite_album():
+    user = get_user()
+    favorite_img_query = user.favorites.order_by(Image.receive_datetime.desc())
+    
+    last = favorite_img_query.first()
+    first = favorite_img_query.order_by(Image.receive_datetime.asc()).first()
+
+    last_date = request.args.get("last_date", "")
+    if last_date != "":
+        try:
+            last_date = datetime.strptime(last_date, "%Y-%m-%d")
+        except:
+            return error(403, "ValueError", "값 오류")
+    else:
+        last_date = last.receive_datetime
+    
+    #Build skeleton
+    obj = {
+        "album": {
+            "id": 0,
+            "type": "favorite",
+            "name": "즐겨찾기",
+            "image_url": config.IMAGE_PREFIX + last.image_url,
+            "thumbnail_image_url": config.IMAGE_PREFIX + last.thumbnail_image_url
+        },
+        "last_date": "",
+        "has_next_page": False,
+        "start_date": datetojp(first.receive_datetime),
+        "end_date": datetojp(last.receive_datetime),
+        "all_photos": []
+    }
+
+    images = favorite_img_query.filter(Image.receive_datetime <= last_date)
+
+    dates = 0
+    t = dict()
+    for image in images:
+        jp_dt = datetojp(image.receive_datetime)
+        if not jp_dt in t:
+            if dates >= 4:
+                obj["has_next_page"] = True
+                break
+            obj["last_date"] = (image.receive_datetime - timedelta(days = 1)).strftime("%Y-%m-%d")
+            t[jp_dt] = []
+            dates += 1
+        t[jp_dt].append({
+            "id": str(image.id),
+            "image_url": config.IMAGE_PREFIX + image.image_url,
+            "thumbnail_image_url": config.IMAGE_PREFIX + image.image_url,
+            "mail_id": image.mail.mail_id,
+            "is_favorite": user.is_favorite(image),
+        })
+    
+    for date in t:
+        obj["all_photos"].append(
+            {
+                "receive_date": date,
+                "photos": t[date]
+            }
+        )
+
+    return generate_json(obj)
+
+@router.route("/all_photos")
+@require_auth
+def all_photo():
+    user = get_user()
+    all_image_query = user.images.order_by(Image.receive_datetime.desc())
+    
+    last = all_image_query.first()
+    first = all_image_query.order_by(Image.receive_datetime.asc()).first()
+
+    last_date = request.args.get("last_date", "")
+    if last_date != "":
+        try:
+            last_date = datetime.strptime(last_date, "%Y-%m-%d")
+        except:
+            return error(403, "ValueError", "값 오류")
+    else:
+        last_date = last.receive_datetime
+    
+    #Build skeleton
+    obj = {
+        "photo_count": 0,
+        "last_date": "",
+        "has_next_page": False,
+        "all_photos": []
+    }
+
+    images = all_image_query.filter(Image.receive_datetime <= last_date)
+
+    dates = 0
+    photos = 0
+    t = dict()
+    for image in images:
+        jp_dt = datetojp(image.receive_datetime)
+        if not jp_dt in t:
+            if dates >= 4:
+                obj["has_next_page"] = True
+                break
+            obj["last_date"] = (image.receive_datetime - timedelta(days = 1)).strftime("%Y-%m-%d")
+            t[jp_dt] = []
+            dates += 1
+        t[jp_dt].append({
+            "id": str(image.id),
+            "image_url": config.IMAGE_PREFIX + image.image_url,
+            "thumbnail_image_url": config.IMAGE_PREFIX + image.image_url,
+            "mail_id": image.mail.mail_id,
+            "is_favorite": user.is_favorite(image),
+        })
+        photos += 1
+    
+    obj["photo_count"] = photos
+    for date in t:
+        obj["all_photos"].append(
+            {
+                "receive_date": date,
+                "photos": t[date]
+            }
+        )
+
+    return generate_json(obj)
+
+@router.route("/favorite-photos", methods = ["PUT", "DELETE"])
+@require_auth
+def fav_photo():
+    user = get_user()
+    if request.method == "PUT":
+        iids = request.form.get("photos", "")
+        for iid in iids.split(","):
+            user.star_image(iid)
+    else:
+        iids = request.args.get("photos", "")
+        for iid in iids.split(","):
+            user.unstar_image(iid)
+    return generate_json({
+        "favorite_photo_count": user.favorites.count()
+    })
+        
 @router.route("/application_settings", methods = ["GET", "PATCH"])
 def application_settings():
     return generate_json({
@@ -346,7 +594,7 @@ def inbox_ignore(cid):
     t["member"]["name"] = "설정"
     return generate_json(t)
 
-@router.route("/inbox/<mid>", methods = ["PATCH"])
+@router.route("/inbox/<mid>", methods = ["GET", "PATCH"])
 @require_auth
 def inbox_read(mid):
     user = get_user()
@@ -356,14 +604,15 @@ def inbox_read(mid):
     elif not mail in user.mails:
         return error(401, "MailError", "접근 오류")
 
-    tp = request.form.get("type", "")
-    if tp == "is_already_read" and mail.member_id <= 12:
-        user.read_mail(mail.id)
-    elif tp == "is_star":
-        if request.form.get("value", "0") == "1":
-            user.star_mail(mail.id)
-        else:
-            user.unstar_mail(mail.id)
+    if request.method == "PATCH": 
+        tp = request.form.get("type", "")
+        if tp == "is_already_read" and mail.member_id <= 12:
+            user.read_mail(mail.id)
+        elif tp == "is_star":
+            if request.form.get("value", "0") == "1":
+                user.star_mail(mail.id)
+            else:
+                user.unstar_mail(mail.id)
 
     
     member = dict(mail.member.__dict__)

@@ -4,6 +4,7 @@ import random
 from functools import wraps
 from datetime import datetime, timedelta
 from .model import *
+from . import config
 
 single_date = re.compile("([0-9]{8})(.*)?")
 double_date = re.compile("([0-9]{8})\-([0-9]{8})(.*)?")
@@ -89,3 +90,11 @@ def parse_search_query(q):
     finally:
         return res
         
+def get_image_preview(image):
+    if not image:
+        return [config.NO_IMAGE, config.NO_IMAGE]
+    else:
+        return [config.IMAGE_PREFIX + image.image_url, config.IMAGE_PREFIX + image.image_url]
+
+def datetojp(dt):
+    return dt.strftime("%Y年%-m月%-d日")
