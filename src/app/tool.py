@@ -66,8 +66,15 @@ def parse_search_query(q):
     if q[0] == "!":
         res["reverse"] = True
         q = q[1:]
+        if q == "":
+            return res
 
+    if q[0] == "#":
+        res["today"] = True
+        return res
+        
     try:
+        
         t = double_date.match(q)
         if t != None:
            res.update({
