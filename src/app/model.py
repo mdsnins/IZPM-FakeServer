@@ -64,17 +64,23 @@ class User(Base):
 
     def resolve_images(self):
         self.m_images = [0] * 13
+        
         self.images = []
         self.favorites = []
         db_session.commit()
+    
+        uimgs = []
         for mail in self.mails:
             for image in mail.images:
                 if image.member_id > 12:
                     continue
                 self.m_images[mail.member_id] += 1
-                self.images.append(image)
+                uimgs.append(image)
+                
+        self.images = uimgs
         self.member_images = '|'.join([str(x) for x in self.m_images])
         db_session.commit()
+        
 
     def change_name(self, member_id, name):
         if not (1 <= member_id and member_id <= 12):
@@ -103,6 +109,19 @@ class User(Base):
         db_session.commit()
         return 1 # Successfully processed
 
+    
+    def read__mail(self, mail):
+        if mail in self.reads:
+            return 0 # Already read
+
+        self.reads.append(mail)
+        self.m_unreads[mail.member_id] -= 1
+        self.m_unreads[0] -= 1
+        self.member_unreads = '|'.join([str(x) for x in self.m_unreads])
+        db_session.commit()
+        return 1 # Successfully processed
+
+
     def star_mail(self, id):
         mail = Mail.query.get(id)
         
@@ -119,12 +138,35 @@ class User(Base):
         db_session.commit()
         return 1 # Successfully processed
 
+        
+    def star__mail(self, mail):
+        if mail in self.stars:
+            return 0 # Already starrerd
+
+        self.stars.append(mail)
+        self.m_stars[mail.member_id] += 1
+        self.m_stars[0] += 1 
+        self.member_stars = '|'.join([str(x) for x in self.m_stars])
+        db_session.commit()
+        return 1 # Successfully processed
+
     def unstar_mail(self, id):
         mail = Mail.query.get(id)
         
         if not mail:
             return -1 # Error
 
+        if not mail in self.stars:
+            return 0 # not in stars
+
+        self.stars.remove(mail)
+        self.m_stars[mail.member_id] -= 1
+        self.m_stars[0] -= 1
+        self.member_stars = '|'.join([str(x) for x in self.m_stars])
+        db_session.commit()
+        return 1 # Successfully processed
+
+    def unstar__mail(self, mail):
         if not mail in self.stars:
             return 0 # not in stars
 

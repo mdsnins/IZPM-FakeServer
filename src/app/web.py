@@ -9,6 +9,8 @@ from .tool import *
 
 router = Blueprint("web", __name__, subdomain = config.WEB_SUBDOMAIN, template_folder = "static/web")
 members = []
+mails = []
+images = []
 
 def get_user(user_id = "", access_token = ""):
     u = User.query.get(request.headers.get("User-Id", user_id))
@@ -20,6 +22,21 @@ def get_user(user_id = "", access_token = ""):
     u.m_stars   = [int(x) for x in u.member_stars.split('|')]
     
     return u
+
+@router.before_app_first_request
+def web_init():
+    global members, mails
+    members = Member.query.all()
+    mails = Mail.query.all()
+    images = Image.query.all()
+
+@router.errorhandler(500)
+def internal_error(err):
+    try:
+        db_session.rollback()
+    except:
+        pass
+    return error(500, "InternalServerError", "내부 서버 오류")
 
 # Static files
 @router.route("/css/<path:path>")
@@ -60,9 +77,11 @@ def user_config(cid):
         configs = {}
         
         ppos = user.get_config("ppos")
+        pasttoday = user.get_config("pasttoday")
         translate = user.get_config("translate")
-        
+
         configs["ppos"] = ppos.value if ppos else None
+        configs["pasttoday"] = pasttoday.value if pasttoday else None
         configs["translate"] = translate.value if translate else None
 
         return render_template("config/common.html", configs = configs, user_id = request.headers.get("User-Id"), access_token = request.headers.get("Access-Token"))
@@ -103,43 +122,61 @@ def user_register():
         return render_template("config/restore_register.html", nick = user.nickname, token = token)
 
     pm_data = json.loads(request.files['pmfile'].read())
-    user.mails = []
-    user.access_token = "!" + user.access_token #Lock the user session
-    db_session.commit()
     
-    for m in Mail.query.filter_by(member_id = 13).all():
-        user.mails.append(m)
-        db_session.commit()
-
-    db_session.commit()
     processed = 0
     skipped = []
     done = dict()
     mid = ""
+
+    user.m_images = [0] * 13
+    umails = []
+    uimgs = []
+
     try:
         for pm in pm_data:
             mid = pm["id"]
             if pm["member"] == "운영팀" or mid[0] == "b":
                 continue
-            m = Mail.query.filter_by(mail_id = mid).one()
+
+            m = None
+            for tm in mails:
+                if tm.mail_id == mid:
+                    m = tm
+                    break
             if not m:
                 skipped.append(mid)
                 continue
             if mid in done:
                 continue
-            user.mails.append(m)
+
+            umails.append(m)
+            for img in m.images:
+                user.m_images[m.member_id] += 1
+                uimgs.append(img)
             done[mid] = True
             processed += 1
-
     except Exception as e:
-        db_session.rollback()
+        user.m_images = [0] * 13
         user.access_token = user.access_token[1:] #Release lock
         return render_template("config/restore_register.html", err = "{} 처리 중 에러가 발생하였습니다.<br>{}".format(mid, e))
     
+    user.access_token = "!" + user.access_token #Lock the user session
     db_session.commit()
-    user.resolve_images()
+
+    for m in Mail.query.filter_by(member_id = 13).all():
+        user.mails.append(m)
+        db_session.commit()
+
+    for m in umails:
+        user.mails.append(m)
+        db_session.commit()
+
+    for i in uimgs:
+        user.images.append(i)
+        db_session.commit()
+    
     user.access_token = user.access_token[1:] #Release lock
-            
+    db_session.commit()
             
     request.files['pmfile'].save("{}/{}.js".format(config.PMJS_PATH, uid))
     user.clear_read()
@@ -188,7 +225,9 @@ def new_config(key):
         if key == "read_clear":
             u.clear_read()
             return generate_json({"code": 200, "msg": "success"})
-
+        if key == "image_clear":
+            u.resolve_images()
+            return generate_json({"code": 200, "msg": "success"})
         if c:
             c.value = v
             db_session.commit()

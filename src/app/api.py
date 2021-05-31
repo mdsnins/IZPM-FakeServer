@@ -1,6 +1,7 @@
 import datetime
 from flask import Flask, render_template, request, url_for, redirect, Blueprint, send_from_directory
 from sqlalchemy import desc, or_, and_
+from sqlalchemy.sql.expression import extract
 from . import config
 from .model import *
 from .database import db_session
@@ -10,6 +11,7 @@ router = Blueprint("api", __name__, subdomain = config.API_SUBDOMAIN)
 
 MEMBER_INDEX = [7, 2, 8, 4, 12, 10, 11, 6, 9, 3, 5, 1]
 members = []
+mails = []
 
 def get_user():
     u = User.query.get(request.headers.get("User-Id", ""))
@@ -77,8 +79,18 @@ def generate_mails(mails):
 
 @router.before_app_first_request
 def api_init():
-    global members
+    global members, mails
     members = Member.query.all()
+    mails = Mail.query.all()
+
+
+@router.errorhandler(500)
+def internal_error(err):
+    try:
+        db_session.rollback()
+    except:
+        pass
+    return error(500, "InternalServerError", "내부 서버 오류")
 
 @router.route("/users", methods = ["GET", "POST", "PATCH"])
 def users():
@@ -343,6 +355,8 @@ def favorite_album():
     first = favorite_img_query.order_by(Image.receive_datetime.asc()).first()
 
     last_date = request.args.get("last_date", "")
+    if not last:
+        return error(403, "ValueError", "설정 -> 일반 설정에서 이미지 초기화 해주세요.")
     if last_date != "":
         try:
             last_date = datetime.strptime(last_date, "%Y-%m-%d")
@@ -401,13 +415,12 @@ def favorite_album():
 @router.route("/all_photos")
 @require_auth
 def all_photo():
-    return error(403, "ValueError", "점검중!")
-
     user = get_user()
     all_image_query = user.images.order_by(Image.receive_datetime.desc())
     
     last = all_image_query.first()
-    first = all_image_query.order_by(Image.receive_datetime.asc()).first()
+    if not last:
+        return error(403, "ValueError", "설정 -> 일반 설정에서 이미지 초기화 해주세요.")
 
     last_date = request.args.get("last_date", "")
     if last_date != "":
@@ -524,30 +537,45 @@ def inbox():
     
 
     # Search
-
     query = user.mails
-    search_query = parse_search_query(q)
 
     if member_id == 0:
         query = query.filter(Mail.member_id < 13)
     else:
         query = query.filter(Mail.member_id == member_id)
-    
-    if "begin" in search_query:
-        query = query.filter(Mail.datetime >= search_query["begin"])
-    if "end" in search_query:
-        query = query.filter(Mail.datetime <= search_query["end"])
 
-    if "q" in search_query:
-        query = query.filter(or_(
-                    Mail.subject.contains(search_query["q"]),
-                    Mail.content.contains(search_query["q"])
-                ))
-    
-    if "reverse" in search_query and search_query["reverse"] == True:
-        query = query.order_by(Mail.id.desc())
+    if q != "":
+        search_query = parse_search_query(q)
+        if "begin" in search_query:
+            query = query.filter(Mail.datetime >= search_query["begin"])
+        if "end" in search_query:
+            query = query.filter(Mail.datetime <= search_query["end"])
+        if "q" in search_query:
+            query = query.filter(or_(
+                        Mail.subject.contains(search_query["q"]),
+                        Mail.content.contains(search_query["q"])
+                    ))
 
-    mails = query.all()
+        if "today" in search_query:
+            today = datetime.now()
+            query = query.filter(and_(
+                        extract("month", Mail.datetime) == today.month,
+                        extract("day", Mail.datetime) == today.day
+                    ))
+        if "reverse" in search_query and search_query["reverse"] == True:
+            query = query.order_by(Mail.id.desc())
+    else:
+        pasttoday = user.get_config("pasttoday")
+        pasttoday = pasttoday.value if pasttoday else "0"
+        if pasttoday == "1":
+            today = datetime.now()
+            query2 = query.filter(and_(
+                        extract("month", Mail.datetime) == today.month,
+                        extract("day", Mail.datetime) == today.day
+                    ))
+            mails = query2.all()
+
+    mails += query.all()
     
     if is_star != "0" and is_star != "false":
         mails = [m for m in mails if user.is_star(m.id)]
@@ -609,12 +637,12 @@ def inbox_read(mid):
     if request.method == "PATCH": 
         tp = request.form.get("type", "")
         if tp == "is_already_read" and mail.member_id <= 12:
-            user.read_mail(mail.id)
+            user.read__mail(mail)
         elif tp == "is_star":
             if request.form.get("value", "0") == "1":
-                user.star_mail(mail.id)
+                user.star__mail(mail)
             else:
-                user.unstar_mail(mail.id)
+                user.unstar__mail(mail)
 
     
     member = dict(mail.member.__dict__)
