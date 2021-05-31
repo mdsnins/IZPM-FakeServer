@@ -23,15 +23,27 @@
                     </div>
                 </div>
                 <div class="form-group row">
+                    <label for="m1_nick" class="col-sm-8 col-form-label">과거의 오늘 프메 최상단 표시</label>
+                    <div class="col-sm-4">
+                        <input type="checkbox"{{ "checked" if configs['pasttoday'] == "1" else ""}} data-toggle="toggle" class="config-toggle" id="pasttoday">
+                    </div>
+                </div>
+                <div class="form-group row">
                     <label for="m1_nick" class="col-sm-8 col-form-label">파파고 번역 버튼 (미구현)</label>
                     <div class="col-sm-4">
                         <input type="checkbox"{{ "checked" if configs['translate'] == "1" else ""}} data-toggle="toggle" class="config-toggle" id="translate">
                     </div>
                 </div>
                 <div class="form-group row">
-                    <label for="m1_nick" class="col-sm-8 col-form-label">프메 읽음 개수 오류 해결</label>
+                    <label for="m1_nick" class="col-sm-8 col-form-label">프메 읽음 개수 음수 오류 해결</label>
                     <div class="col-sm-4">
                         <button type="button" class="btn btn-primary config-button" id="read_clear">클릭</button>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="m1_nick" class="col-sm-8 col-form-label">앨범 기능 오류 해결</label>
+                    <div class="col-sm-4">
+                        <button type="button" class="btn btn-primary config-button" id="image_clear">클릭</button>
                     </div>
                 </div>
             </div>
