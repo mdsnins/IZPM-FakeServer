@@ -29,6 +29,12 @@
                     </div>
                 </div>
                 <div class="form-group row">
+                    <label for="m1_nick" class="col-sm-8 col-form-label">랜덤 프라이빗 메일</label>
+                    <div class="col-sm-4">
+                        <input type="checkbox"{{ "checked" if configs['randompm'] == "1" else ""}} data-toggle="toggle" class="config-toggle" id="randompm">
+                    </div>
+                </div>
+                <div class="form-group row">
                     <label for="m1_nick" class="col-sm-8 col-form-label">파파고 번역 버튼 (미구현)</label>
                     <div class="col-sm-4">
                         <input type="checkbox"{{ "checked" if configs['translate'] == "1" else ""}} data-toggle="toggle" class="config-toggle" id="translate">
@@ -45,6 +51,23 @@
                     <div class="col-sm-4">
                         <button type="button" class="btn btn-primary config-button" id="image_clear">클릭</button>
                     </div>
+                </div>
+                <hr />
+                <div class="row">
+                    <h3 class="text-center">고급 검색 가이드</h3>
+                    <p>
+                        과거의 오늘 프메 검색 : 검색창에 # 검색<br />
+                        역순 정렬 : 검색어 제일 앞에 ! 붙임<br />
+                        날짜 검색 : 8자리 날짜 포맷 입력<br />
+                        ex) 20191029 --> 2019년 10월 29일의 프메 검색<br />
+                        20191029 밥 --> 2019년 10월 29일의 프메 중 '밥' 키워드가 있는 프메 검색<br />
+                        20190831-20181029 밥 --> 2019년 8월 31일부터 10월 29일까지의 프메 중 '밥' 키워드가 있는 프메 검색<br />
+                        <br />
+                        역순 정렬 검색과 다른 검색은 조합이 가능합니다.<br />
+                        ex)<br />
+                        !# : 과거의 오늘 프메를 시간 역순으로 정렬<br />
+                        !20190831-20181029 밥 --> 2019년 8월 31일부터 10월 29일까지의 프메 중 '밥' 키워드가 있는 프메 오래된 순서로 검색<br />
+                    </p>
                 </div>
             </div>
         </main>

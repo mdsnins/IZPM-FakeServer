@@ -10,8 +10,11 @@ from .tool import *
 router = Blueprint("api", __name__, subdomain = config.API_SUBDOMAIN)
 
 MEMBER_INDEX = [7, 2, 8, 4, 12, 10, 11, 6, 9, 3, 5, 1]
+RANDOM_MAIL = None
+
 members = []
 mails = []
+
 
 def get_user():
     u = User.query.get(request.headers.get("User-Id", ""))
@@ -79,10 +82,26 @@ def generate_mails(mails):
 
 @router.before_app_first_request
 def api_init():
-    global members, mails
+    global members, mails, RANDOM_MAIL
     members = Member.query.all()
     mails = Mail.query.all()
-
+    RANDOM_MAIL = {
+        "member": {
+            "id": 13,
+            "name": "아이즈원", "realname_ko": "아이즈원", "realname_in": "IZ*ONE","realname_th": "IZ*ONE",
+            "image_url": "https://wizone.s3.ap-northeast-2.amazonaws.com/izpm/profile/pu.jpg",
+        }
+        ,
+        "group": {
+            "id": 3, "name": "IZ*ONE"
+        },
+        "id": "random",
+        "subject": "우리들의 추억 한 조각", "subject_ko": "우리들의 추억 한 조각", "subject_in": "우리들의 추억 한 조각", "subject_th": "우리들의 추억 한 조각",
+        "content": "위즈원, 벌써 까먹은거 아니지?", "content_ko": "위즈원, 벌써 까먹은거 아니지?", "content_in": "위즈원, 벌써 까먹은거 아니지?", "content_th": "위즈원, 벌써 까먹은거 아니지?",
+        "receive_time": "2021/10/29 12:0", "receive_datetime": "2021/10/29 12:0:00",
+        "detail_url": "https://web.p.wonyoung.kr:1000/mail/random", "detail_url_ko": "https://web.p.wonyoung.kr:1000/mail/random", "detail_url_in": "https://web.p.wonyoung.kr:1000/mail/random", "detail_url_th": "https://web.p.wonyoung.kr:1000/mail/random",
+        "is_unread": True, "is_star": False, "is_image": False
+    }
 
 @router.errorhandler(500)
 def internal_error(err):
@@ -178,10 +197,6 @@ def users():
 
 @router.route("/data_inherit_execute", methods = ["POST"])
 def android_inherit():
-    user = get_user()
-    if not user:
-        return error(401, "AuthorizationError", "인증 오류")
-
     ccode = request.form.get("country_code", "KR")
     pfid = request.form.get("prefecture_id", "-1")
     gender = request.form.get("gender", "male")
@@ -189,6 +204,10 @@ def android_inherit():
     
     nickname = request.form.get("user_id", "위즈원")
     bday = request.form.get("password", "")
+    
+    user = get_user()
+    if not user:
+        return error(401, "AuthorizationError", "인증 오류")
     
     try:
         if bday != "":
@@ -534,7 +553,6 @@ def inbox():
         member_id = 0
 
     mails = []
-    
 
     # Search
     query = user.mails
@@ -585,14 +603,23 @@ def inbox():
     
     total = len(mails)
     mails = mails[(page - 1)*20:page*20]
-    return generate_json({
+
+    result_obj = {
         "mail_count": len(mails),
         "page": page,
         "has_next_page": page*20 < total,
         "unread_count": user.m_unreads[member_id] if member_id < 13 else 0 ,
         "star_count": user.m_stars[member_id] if member_id < 13  else 0,
         "mails": generate_mails(mails)
-    })
+    }
+
+    randompm = user.get_config("randompm")
+    randompm = randompm.value if randompm else "0"
+    if member_id == 0 and randompm == "1" and q == "" and (is_star == "0" or is_star == "false") and (is_unread == "0" or is_unread == "false") and page == 1:
+        result_obj["mail_count"] += 1
+        result_obj["mails"].insert(0, RANDOM_MAIL)
+
+    return generate_json(result_obj)
 
 @router.route("/inbox/config/<cid>", methods = ["PATCH"])
 @require_auth
@@ -623,6 +650,11 @@ def inbox_ignore(cid):
     }
     t["member"]["name"] = "설정"
     return generate_json(t)
+
+@router.route("/inbox/random", methods = ["PATCH"])
+@require_auth
+def inbox_random():
+    return generate_json({"member": {"id": 13, "name": "아이즈원", "realname_ko": "아이즈원", "realname_in": "IZ*ONE", "realname_th": "IZ*ONE", "image_url": "https://wizone.s3.ap-northeast-2.amazonaws.com/izpm/profile/pu.jpg"}, "group": {"id": 3, "name": "IZ*ONE"}, "id": "random", "subject": "우리들의 추억 한 조각", "subject_ko": "우리들의 추억 한 조각", "subject_in": "우리들의 추억 한 조각", "subject_th": "우리들의 추억 한 조각", "content": "위즈원, 벌써 까먹은거 아니지?", "content_ko": "위즈원, 벌써 까먹은거 아니지?", "content_in": "위즈원, 벌써 까먹은거 아니지?", "content_th": "위즈원, 벌써 까먹은거 아니지?", "receive_time": "2021/10/29 12:0", "receive_datetime": "2021/10/29 12:0:00", "detail_url": "https://web.p.wonyoung.kr:1000/mail/random", "detail_url_ko": "https://web.p.wonyoung.kr:1000/mail/random", "detail_url_in": "https://web.p.wonyoung.kr:1000/mail/random", "detail_url_th": "https://web.p.wonyoung.kr:1000/mail/random", "is_unread": True, "is_star": False, "is_image": False})
 
 @router.route("/inbox/<mid>", methods = ["GET", "PATCH"])
 @require_auth

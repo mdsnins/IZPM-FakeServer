@@ -3,6 +3,7 @@ import time
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 from flask import Flask, render_template, request, url_for, redirect, Blueprint, send_from_directory, send_file
+from sqlalchemy.sql.expression import func
 from . import config
 from .model import *
 from .tool import *
@@ -27,7 +28,10 @@ def get_user(user_id = "", access_token = ""):
 def web_init():
     global members, mails
     members = Member.query.all()
-    mails = Mail.query.all()
+    mails = dict()
+    for m in Mail.query.all():
+        mails[m.mail_id] = m
+
     images = Image.query.all()
 
 @router.errorhandler(500)
@@ -39,6 +43,7 @@ def internal_error(err):
     return error(500, "InternalServerError", "내부 서버 오류")
 
 # Static files
+'''
 @router.route("/css/<path:path>")
 def getcss(path):
     return send_from_directory("static/css", path)
@@ -46,6 +51,7 @@ def getcss(path):
 @router.route("/js/<path:path>")
 def getjs(path):
     return send_from_directory("static/js", path)
+'''
 
 # About static pages
 @router.route("/pages/kiyaku")
@@ -78,10 +84,13 @@ def user_config(cid):
         
         ppos = user.get_config("ppos")
         pasttoday = user.get_config("pasttoday")
+        randompm = user.get_config("randompm")
         translate = user.get_config("translate")
+
 
         configs["ppos"] = ppos.value if ppos else None
         configs["pasttoday"] = pasttoday.value if pasttoday else None
+        configs["randompm"] = randompm.value if randompm else None
         configs["translate"] = translate.value if translate else None
 
         return render_template("config/common.html", configs = configs, user_id = request.headers.get("User-Id"), access_token = request.headers.get("Access-Token"))
@@ -98,7 +107,8 @@ def user_register():
     token = request.args.get("token", "")
     if token == "":
         return render_template("config/restore_register.html", err = "잘못된 접근입니다.")
-
+    if request.method == "POST":
+        pm_data = json.loads(request.files['pmfile'].read())
     cipher = AES.new(config.CRYPTO_KEY, AES.MODE_ECB)
     uid, at = "", ""
     try:
@@ -121,7 +131,6 @@ def user_register():
     if request.method == "GET":
         return render_template("config/restore_register.html", nick = user.nickname, token = token)
 
-    pm_data = json.loads(request.files['pmfile'].read())
     
     processed = 0
     skipped = []
@@ -138,11 +147,7 @@ def user_register():
             if pm["member"] == "운영팀" or mid[0] == "b":
                 continue
 
-            m = None
-            for tm in mails:
-                if tm.mail_id == mid:
-                    m = tm
-                    break
+            m = mails.get(mid, None)
             if not m:
                 skipped.append(mid)
                 continue
@@ -157,26 +162,16 @@ def user_register():
             processed += 1
     except Exception as e:
         user.m_images = [0] * 13
-        user.access_token = user.access_token[1:] #Release lock
         return render_template("config/restore_register.html", err = "{} 처리 중 에러가 발생하였습니다.<br>{}".format(mid, e))
     
-    user.access_token = "!" + user.access_token #Lock the user session
-    db_session.commit()
+    user.mails = umails
+    user.images = uimgs
 
     for m in Mail.query.filter_by(member_id = 13).all():
         user.mails.append(m)
-        db_session.commit()
 
-    for m in umails:
-        user.mails.append(m)
-        db_session.commit()
-
-    for i in uimgs:
-        user.images.append(i)
-        db_session.commit()
-    
-    user.access_token = user.access_token[1:] #Release lock
     db_session.commit()
+    
             
     request.files['pmfile'].save("{}/{}.js".format(config.PMJS_PATH, uid))
     user.clear_read()
@@ -196,7 +191,10 @@ def inbox_read(mid):
     if not user:
         return error(401, "AuthorizationError", "인증 오류")
 
-    mail = Mail.query.filter_by(mail_id = mid).one()
+    if mid == "random":
+        mail = user.mails.order_by(func.rand()).first()
+    else:
+        mail = Mail.query.filter_by(mail_id = mid).one()
     if not mail:
         return error(401, "MailError", "접근 오류")
 
@@ -213,10 +211,11 @@ def inbox_read(mid):
 @router.route("/config/<key>", methods = ["GET", "POST"])
 def new_config(key):
     u = get_user(request.args.get("u", ""), request.args.get("t", ""))
-    if not u:
-        return error(401, "AuthorizationError", "인증 오류")
     v = request.form.get("value", "")
     c = u.get_config(key)
+    
+    if not u:
+        return error(401, "AuthorizationError", "인증 오류")
 
     if len(v) > 32:
         return generate_json({"code": -1, "msg": "too long"})
